@@ -2,7 +2,7 @@ from envs.thor import ThorEnv
 from stable_baselines.common.policies import CnnLnLstmPolicy
 from stable_baselines import PPO2
 from stable_baselines.common.callbacks import EvalCallback
-from stable_baselines.common.vec_env import SubprocVecEnv
+from stable_baselines.common.vec_env import SubprocVecEnv, VecNormalize
 from stable_baselines.common import set_global_seeds
 
 def make_env(rank, seed=0):
@@ -35,6 +35,7 @@ if __name__=='__main__':
 
     # train environment
     train_env = SubprocVecEnv([make_env(i) for i in range(num_processes)])
+    # train_env = VecNormalize(train_env, training=True, norm_obs=True, norm_reward=True) 
 
     model = PPO2(CnnLnLstmPolicy, train_env, nminibatches=2, verbose=1, tensorboard_log="./logs/tensorboard_log/")
     model.learn(total_timesteps=500000, callback = eval_callback)

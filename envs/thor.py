@@ -1,11 +1,11 @@
 import collections
 import gym
 from gym import spaces
-import ai2thor.controller
 from .config.config import config_parser
 import numpy as np
 from PIL import Image
 import itertools
+from ai2thor.controller import Controller
 
 class ThorEnv(gym.Env):
     """Custom Environment that follows gym interface"""
@@ -36,10 +36,16 @@ class ThorEnv(gym.Env):
         self.frame_sz = self.args.frame_size
         self.max_t = self.args.num_steps
         self.reward_type = self.args.reward_type
+
         self.eval_episodes = self.args.eval_episodes # use predefined scenes and episodes for evaluation
         self.eval_scenes = self.args.eval_scenes
         self.eval_episode_iter = iter(self.eval_episodes)
         self.eval_scene_iter = iter(self.eval_scenes)
+        self.debug_scene = self.args.debug_scene # use predefined scene for debugging
+        self.debug_episode = self.args.debug_episode
+        
+        if self.reward_type == 'interaction_count':
+            self.interaction_count = collections.defaultdict(int)
 
         # only navigation + take and put
         self.actions = ["forward", "up", "down", "right", "left", "take", "put"]
@@ -56,32 +62,32 @@ class ThorEnv(gym.Env):
         # define action space and observation space
         # ai2thor images are already uint8 (0-255)
         self.action_space = spaces.Discrete(len(self.actions))
-        self.observation_space = spaces.Box(low=0, high=255,
-                                            shape=(obs_size, obs_size, num_channels), dtype=np.uint8)
-
+        self.observation_space = spaces.Box(low=0, high=255, shape=(obs_size, obs_size, num_channels), dtype=np.uint8)
+        
         self.N = 5
         self.center = ((self.frame_sz//self.N)*(self.N//2), (self.frame_sz//self.N)*(self.N+1)//2)
         self.center_grid = np.array([[self.center[0], self.center[0], self.center[1], self.center[1]]]) # xyxy     
 
         # create ai2thor controller
-        self.controller = ai2thor.controller.Controller(quality='Ultra',
-                                                        local_executable_path=local_exe,
-                                                        x_display=x_display)
-
-
-
+        self.controller = Controller(quality='Ultra', local_executable_path=local_exe, x_display=x_display)
 
     # functions need to be overwritten for gym env
     def step(self, action):
         self.t += 1
+
         self.step_info = self.act(self.actions[action])
         observation = self.get_observation(self.state)
         reward = self.get_reward()
         done = self.get_done()
+
+        self.step_info.update({'reward':reward, 'done':done})
+
         return observation, reward, done, self.step_info
 
     def reset(self):
         self.t = 0
+        if self.reward_type == 'interaction_count':
+            self.interaction_count = collections.defaultdict(int)
         self.init_env()
         return self.get_observation(self.state)
 
@@ -146,6 +152,8 @@ class ThorEnv(gym.Env):
 
         return targets
 
+    def get_actions(self):
+        return self.actions
 
     def get_observation(self, state):
         img = state.frame
@@ -228,7 +236,6 @@ class ThorEnv(gym.Env):
             action_info['success'] = self.state.metadata['lastActionSuccess']
         
         # if it's a movement action, double check that you're still on the grid
-        
         if action_info['action']=='forward' and action_info['success']:
             x, y, z, rot, hor = self.agent_pose(self.state)
             if (x, y, z) not in self.reachable_positions:
@@ -237,10 +244,20 @@ class ThorEnv(gym.Env):
                                     rotation=dict(x=0, y=rot, z=0), horizon=hor, standing=True))            
 
         return action_info
+    
+    # initialize the environment for kb agent
+    def init_env_debug(self):
+        self.scene = self.debug_scene
+        self.episode = self.debug_episode
+
+        self.controller.reset(self.scene)
+        self.controller.step(dict(action='Initialize', **self.init_params))
+        self.controller.step(dict(action='GetReachablePositions'))
+        self.reachable_positions = set([(pos['x'], pos['y'], pos['z']) for pos in self.state.metadata['actionReturn']])
+        self.controller.step(dict(action='TeleportFull', position=dict(x=0, y=0.9009991, z=2.25), rotation=dict(x=0, y=180, z=0), horizon=0, standing=True))
 
     # initialize the environment
     def init_env(self):
-
         if self.mode == "train":
             self.scene = self.rs.choice(['FloorPlan%d'%idx for idx in range(6, 30+1)]) # 6 --> 30 = train. 1 --> 5 = test
             self.episode = self.rs.randint(1000000000)
@@ -250,11 +267,14 @@ class ThorEnv(gym.Env):
                 self.eval_episode_iter = iter(self.eval_episodes)
                 self.eval_scene_iter = iter(self.eval_scenes)
                 self.scene, self.episode = next(self.eval_scene_iter), next(self.eval_episode_iter)
-
+        elif self.mode =="debug":
+            self.init_env_debug()
+            return
         else:
             raise NotImplementedError
 
-        self.controller.reset(scene=self.scene, **self.init_params)
+        self.controller.reset(scene=self.scene)
+        self.controller.step(dict(action='Initialize', **self.init_params))
        
         # randomize objects (should we do it?)
         self.controller.step(dict(action='InitialRandomSpawn',
@@ -273,8 +293,6 @@ class ThorEnv(gym.Env):
         
         self.reachable_positions = set(reachable_positions)
 
-
-
         # reward specific parameters
-        if self.reward_type == "interaction_count":
-            self.interaction_count = collections.defaultdict(int)
+        # if self.reward_type == "interaction_count":
+        #     self.interaction_count = collections.defaultdict(int)
