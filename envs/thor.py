@@ -9,9 +9,7 @@ import itertools
 
 class ThorEnv(gym.Env):
     """Custom Environment that follows gym interface"""
-    metadata = {'render.modes': ['human']}
-
-    def __init__(self, mode):
+    def __init__(self, mode, seed):
         super(ThorEnv, self).__init__()
 
         # get args
@@ -25,6 +23,7 @@ class ThorEnv(gym.Env):
         num_channels = self.args.num_channels #3 for rgb but will probably change with affordance
 
         # set global args for the class
+        self.rs = np.random.RandomState(seed) #set random seed for same training data
         self.init_params = {
             'gridSize': 0.25,
             'renderDepthImage': True,
@@ -36,10 +35,11 @@ class ThorEnv(gym.Env):
         self.rot_size_y = self.args.rot_size_y
         self.frame_sz = self.args.frame_size
         self.max_t = self.args.num_steps
-        self.rs = np.random.RandomState(self.args.random_seed) #set random seed for same training data
-        self.eval_episodes = iter(self.args.eval_episodes) # use predefined scenes and episodes for evaluation
-        self.eval_scenes = iter(self.args.eval_scenes)
         self.reward_type = self.args.reward_type
+        self.eval_episodes = self.args.eval_episodes # use predefined scenes and episodes for evaluation
+        self.eval_scenes = self.args.eval_scenes
+        self.eval_episode_iter = iter(self.eval_episodes)
+        self.eval_scene_iter = iter(self.eval_scenes)
 
         # only navigation + take and put
         self.actions = ["forward", "up", "down", "right", "left", "take", "put"]
@@ -240,12 +240,17 @@ class ThorEnv(gym.Env):
 
     # initialize the environment
     def init_env(self):
+
         if self.mode == "train":
             self.scene = self.rs.choice(['FloorPlan%d'%idx for idx in range(6, 30+1)]) # 6 --> 30 = train. 1 --> 5 = test
             self.episode = self.rs.randint(1000000000)
         elif self.mode == "eval":
-            self.scene, self.episode = next(self.eval_scenes), next(self.eval_episodes)
-            print ('INIT: %s episode %s'%(self.scene, self.episode))
+            self.scene, self.episode = next(self.eval_scene_iter,None), next(self.eval_episode_iter,None)
+            if self.scene is None:
+                self.eval_episode_iter = iter(self.eval_episodes)
+                self.eval_scene_iter = iter(self.eval_scenes)
+                self.scene, self.episode = next(self.eval_scene_iter), next(self.eval_episode_iter)
+
         else:
             raise NotImplementedError
 
@@ -267,6 +272,8 @@ class ThorEnv(gym.Env):
                             rotation=dict(x=0, y=rot, z=0), horizon=0, standing=True))
         
         self.reachable_positions = set(reachable_positions)
+
+
 
         # reward specific parameters
         if self.reward_type == "interaction_count":
