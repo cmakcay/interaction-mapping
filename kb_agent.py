@@ -66,18 +66,18 @@ class KBController():
         self.center = ((self.args.frame_size//self.N)*(self.N//2), (self.args.frame_size//self.N)*(self.N+1)//2)
         self.center_box = [self.center[0], self.center[0], self.center[1], self.center[1]]
 
-        self.timestamp = open(f"{self.args.save_path}/timestamps.csv", 'w')
-        self.writer = csv.writer(self.timestamp)
-        self.writer.writerow(['ImageID', 'TimeStamp'])
+        # self.timestamp = open(f"{self.args.save_path}/timestamps.csv", 'w')
+        # self.writer = csv.writer(self.timestamp)
+        # self.writer.writerow(['ImageID', 'TimeStamp'])
 
-        self.rgbs_to_id = {}
-        with open(self.args.csv_path) as csvfile:
-            reader = csv.DictReader(csvfile)
-            # header = next(reader)
-            for row in reader:
-                rgb_curr  = (int(row["R"]), int(row["G"]), int(row["B"]))
-                id_curr = int(row["InstanceID"])
-                self.rgbs_to_id[rgb_curr] = id_curr
+        # self.rgbs_to_id = {}
+        # with open(self.args.csv_path) as csvfile:
+        #     reader = csv.DictReader(csvfile)
+        #     # header = next(reader)
+        #     for row in reader:
+        #         rgb_curr  = (int(row["R"]), int(row["G"]), int(row["B"]))
+        #         id_curr = int(row["InstanceID"])
+        #         self.rgbs_to_id[rgb_curr] = id_curr
 
         self.render()
 
@@ -128,28 +128,28 @@ class KBController():
         transformat = np.hstack((rotmax, transmat))
         transformat = np.vstack((transformat, [0, 0, 0, 1]))
 
-        t = '{:06d}'.format(self.time)
-        np.savetxt(f"{self.args.save_path}/{t}_pose.txt", transformat, fmt="%.6f")
+        # t = '{:06d}'.format(self.time)
+        # np.savetxt(f"{self.args.save_path}/{t}_pose.txt", transformat, fmt="%.6f")
 
         color_to_id = event.color_to_object_id
-        if (color_frame is not None):
-            im = PilImage.fromarray(color_frame)
-            im.save(f"{self.args.save_path}/{t}_color.png")
-        if (depth_frame is not None):
-            im = PilImage.fromarray(depth_frame)
-            im.save(f"{self.args.save_path}/{t}_depth.tiff")
-        if (segmentation_frame is not None):
-            seg_height = segmentation_frame.shape[0]
-            seg_width = segmentation_frame.shape[1]
-            id_frame = np.zeros_like(segmentation_frame)
-            for j_idx in range(seg_width):
-              for i_idx in range(seg_height):
-                cur_rgb = [segmentation_frame[i_idx,j_idx, :]]  
-                cur_rgb_tuple = [tuple(e) for e in cur_rgb]
-                cur_id = self.rgbs_to_id[cur_rgb_tuple[0]]
-                id_frame[i_idx,j_idx, :] = [cur_id, cur_id, cur_id]
-            im = PilImage.fromarray(id_frame)
-            im.save(f"{self.args.save_path}/{t}_segmentation.png")
+        # if (color_frame is not None):
+        #     im = PilImage.fromarray(color_frame)
+        #     im.save(f"{self.args.save_path}/{t}_color.png")
+        # if (depth_frame is not None):
+        #     im = PilImage.fromarray(depth_frame)
+        #     im.save(f"{self.args.save_path}/{t}_depth.tiff")
+        # if (segmentation_frame is not None):
+        #     seg_height = segmentation_frame.shape[0]
+        #     seg_width = segmentation_frame.shape[1]
+        #     id_frame = np.zeros_like(segmentation_frame)
+        #     for j_idx in range(seg_width):
+        #       for i_idx in range(seg_height):
+        #         cur_rgb = [segmentation_frame[i_idx,j_idx, :]]  
+        #         cur_rgb_tuple = [tuple(e) for e in cur_rgb]
+        #         cur_id = self.rgbs_to_id[cur_rgb_tuple[0]]
+        #         id_frame[i_idx,j_idx, :] = [cur_id, cur_id, cur_id]
+        #     im = PilImage.fromarray(id_frame)
+        #     im.save(f"{self.args.save_path}/{t}_segmentation.png")
 
         # if (color_to_id is not None):
         #     list_of_dicsts = []
@@ -161,8 +161,8 @@ class KBController():
         #         writer.writeheader()
         #         writer.writerows(list_of_dicsts) 
 
-        data = [t, 1000 * self.time]
-        self.writer.writerow(data)
+        # data = [t, 1000 * self.time]
+        # self.writer.writerow(data)
 
         frame = torch.from_numpy(np.array(event.frame)).float().permute(2, 0, 1)/255
         frame = F.interpolate(frame.unsqueeze(0), 300, mode='bilinear', align_corners=True)[0]

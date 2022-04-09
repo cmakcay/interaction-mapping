@@ -62,7 +62,7 @@ class ThorEnv(gym.Env):
         # define action space and observation space
         # ai2thor images are already uint8 (0-255)
         self.action_space = spaces.Discrete(len(self.actions))
-        self.observation_space = spaces.Box(low=0, high=255, shape=(obs_size, obs_size, num_channels), dtype=np.uint8)
+        self.observation_space = spaces.Box(low=0, high=255, shape=(num_channels, obs_size, obs_size), dtype=np.uint8)
         
         self.N = 5
         self.center = ((self.frame_sz//self.N)*(self.N//2), (self.frame_sz//self.N)*(self.N+1)//2)
@@ -85,9 +85,6 @@ class ThorEnv(gym.Env):
         return observation, reward, done, self.step_info
 
     def reset(self):
-        self.t = 0
-        if self.reward_type == 'interaction_count':
-            self.interaction_count = collections.defaultdict(int)
         self.init_env()
         return self.get_observation(self.state)
 
@@ -156,8 +153,9 @@ class ThorEnv(gym.Env):
         return self.actions
 
     def get_observation(self, state):
-        img = state.frame
-        return img
+        img = np.array(state.frame, dtype=np.uint8)
+        img_channel_first = np.moveaxis(img, -1, 0)
+        return img_channel_first
 
     def agent_pose(self, state):
         agent = state.metadata['agent']
@@ -258,6 +256,7 @@ class ThorEnv(gym.Env):
 
     # initialize the environment
     def init_env(self):
+        self.t=0
         if self.mode == "train":
             self.scene = self.rs.choice(['FloorPlan%d'%idx for idx in range(6, 30+1)]) # 6 --> 30 = train. 1 --> 5 = test
             self.episode = self.rs.randint(1000000000)
@@ -294,5 +293,5 @@ class ThorEnv(gym.Env):
         self.reachable_positions = set(reachable_positions)
 
         # reward specific parameters
-        # if self.reward_type == "interaction_count":
-        #     self.interaction_count = collections.defaultdict(int)
+        if self.reward_type == "interaction_count":
+            self.interaction_count = collections.defaultdict(int)
