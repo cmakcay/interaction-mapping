@@ -21,11 +21,11 @@ class CustomCNN(BaseFeaturesExtractor):
 
         n_input_channels = observation_space.shape[0]
         self.cnn = nn.Sequential(
-            nn.Conv2d(n_input_channels, 32, kernel_size=8, stride=4), #3x80x80 -> 32x19x19
+            nn.Conv2d(n_input_channels, 32, kernel_size=8, stride=4),
             nn.ReLU(True),
-            nn.Conv2d(32, 64, kernel_size=4, stride=2), #32x19x19 -> 64x9x9
+            nn.Conv2d(32, 64, kernel_size=4, stride=2), 
             nn.ReLU(True),
-            nn.Conv2d(64, 32, kernel_size=3, stride=1), #64X9X9 -> 32x
+            nn.Conv2d(64, 32, kernel_size=3, stride=1),
             nn.Flatten(),
         )
 
@@ -34,9 +34,6 @@ class CustomCNN(BaseFeaturesExtractor):
 
     def forward(self, observations: torch.Tensor) -> torch.Tensor:
         observations = self.transform_image(observations)
-        # t = transforms.ToPILImage()
-        # im = t(observations.detach()[0])
-        # im.show()
         observations = self.cnn(observations)
         observations = self.linear(observations)
         return observations

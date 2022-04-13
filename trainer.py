@@ -1,5 +1,4 @@
 from envs.thor import ThorEnv
-from sb3_contrib import RecurrentPPO
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import EvalCallback
 from stable_baselines3.common.vec_env import SubprocVecEnv
@@ -51,31 +50,14 @@ if __name__=='__main__':
                              deterministic=False, render=False, n_eval_episodes=8)
 
     # train environment
-    train_env = SubprocVecEnv([make_env(i) for i in range(num_processes)])
-    # train_env = VecNormalize(train_env, training=True, norm_obs=True, norm_reward=True) 
-    
-    # # 
-    # policy_kwargs = dict(
-    #     features_extractor_class=CustomCNN,
-    #     features_extractor_kwargs=dict(features_dim=512),
-    #     lstm_hidden_size = 512,
-    #     net_arch=[512, dict(vf=[512], pi=[512])],
-    #     n_lstm_layers = 1,
-    #     # shared_lstm=True,
-    # )
-    # # 
-
-    # model = RecurrentPPO("CnnLstmPolicy", train_env, batch_size=128, verbose=1, n_steps=256, n_epochs=4, 
-    #             learning_rate=1e-4, tensorboard_log="./logs/tensorboard_log/", ent_coef=0.01, policy_kwargs=policy_kwargs)
-    
-        # 
+    train_env = SubprocVecEnv([make_env(i) for i in range(num_processes)])    
+        
     policy_kwargs = dict(
         features_extractor_class=CustomCNN,
         features_extractor_kwargs=dict(features_dim=512),
         net_arch=[512, dict(vf=[512], pi=[512])],
     )
-    # 
-
+    
     model = PPO("CnnPolicy", train_env, batch_size=128, verbose=1, n_steps=256, n_epochs=4, 
                 learning_rate=1e-4, tensorboard_log="./logs/tensorboard_log/", ent_coef=0.01, policy_kwargs=policy_kwargs)
     

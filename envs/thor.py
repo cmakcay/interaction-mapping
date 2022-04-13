@@ -1,4 +1,5 @@
 import collections
+from platform import platform
 import gym
 from gym import spaces
 from .config.config import config_parser
@@ -6,6 +7,7 @@ import numpy as np
 from PIL import Image
 import itertools
 from ai2thor.controller import Controller
+from ai2thor.platform import CloudRendering
 
 class ThorEnv(gym.Env):
     """Custom Environment that follows gym interface"""
@@ -17,11 +19,22 @@ class ThorEnv(gym.Env):
         self.args = parser.parse_args()
 
         # set gym env args
+        self.observations = self.args.observations
+        platform = CloudRendering if self.args.headless == True else None
         x_display = self.args.x_display
         local_exe = None if self.args.local_exe=='None' else self.config.local_exe
         obs_size = self.args.obs_size #switch to a smaller size than 300x300?
-        num_channels = self.args.num_channels #3 for rgb but will probably change with affordance
-        num_channels = 4
+        
+        if self.observations == "rgb":
+            num_channels = 3
+        elif self.observations == "rgbd":
+            num_channels == 4
+        elif self.observations == "rgba":
+            num_channels = 5
+        else:
+            raise NotImplementedError
+
+        
         # set global args for the class
         self.rs = np.random.RandomState(seed) #set random seed for same training data
         self.init_params = {
@@ -29,8 +42,8 @@ class ThorEnv(gym.Env):
             'renderDepthImage': True,
             'renderInstanceSegmentation': True,
             'visibilityDistance': 1.0, #maybe switch to 1.5?
-            'width': 80,
-            'height': 80,
+            'width': 80, #setting height and width here doesnt work, also set below
+            'height': 80, 
         }
         self.mode = mode #train or eval
         self.rot_size_x = self.args.rot_size_x
@@ -46,6 +59,7 @@ class ThorEnv(gym.Env):
         self.debug_scene = self.args.debug_scene # use predefined scene for debugging
         self.debug_episode = self.args.debug_episode
         
+        # reward specific parameters
         if self.reward_type == 'interaction_count':
             self.interaction_count = collections.defaultdict(int)
 
@@ -66,24 +80,23 @@ class ThorEnv(gym.Env):
         self.action_space = spaces.Discrete(len(self.actions))
         self.observation_space = spaces.Box(low=0, high=255, shape=(num_channels, obs_size, obs_size), dtype=np.uint8)
         
+        # take/put grid
         self.N = 5
         self.center = ((self.frame_sz//self.N)*(self.N//2), (self.frame_sz//self.N)*(self.N+1)//2)
         self.center_grid = np.array([[self.center[0], self.center[0], self.center[1], self.center[1]]]) # xyxy     
 
         # create ai2thor controller
-        self.controller = Controller(quality='Ultra', local_executable_path=local_exe, x_display=x_display, width=80, height=80)
+        self.controller = Controller(quality='Ultra', local_executable_path=local_exe, 
+                                x_display=x_display, width=self.frame_sz, height=self.frame_sz, platform=platform)
 
     # functions need to be overwritten for gym env
     def step(self, action):
         self.t += 1
-
         self.step_info = self.act(self.actions[action])
         observation = self.get_observation(self.state)
         reward = self.get_reward()
         done = self.get_done()
-
         self.step_info.update({'reward':reward, 'done':done})
-
         return observation, reward, done, self.step_info
 
     def reset(self):
@@ -114,6 +127,7 @@ class ThorEnv(gym.Env):
     def get_done(self):
         return self.t>=self.max_t
     
+    # borrowed from Facebook's interaction-exploration
     def get_target_obj(self, obj_property, overlap_thresh=0.3):
 
         objId_to_obj = {obj['objectId']:obj for obj in self.state.metadata['objects'] if obj['visible'] and obj['objectId']!=self.inv_obj}
@@ -155,38 +169,51 @@ class ThorEnv(gym.Env):
         return self.actions
 
     def get_observation(self, state):
-        img = np.array(state.frame, dtype=np.uint8)
-        img_channel_first = np.moveaxis(img, -1, 0)
-        depth_frame = state.depth_frame[np.newaxis, ...]
-        img_channel_first = np.append(img_channel_first, depth_frame, axis=0)
-        return img_channel_first
-        # curr_objects = state.metadata['objects']
-        # num_obj_actions = 2 # [take, put]
-        # affordance_mask = np.zeros((num_obj_actions, self.args.obs_size, self.args.obs_size), dtype=np.uint8)
-        # seg_frame = state.instance_segmentation_frame
+        if self.observations == "rgb":
+            img = np.array(state.frame, dtype=np.uint8)
+            img_channel_first = np.moveaxis(img, -1, 0)
+            obs = img_channel_first
+        elif self.observations == "rgbd":
+            img = np.array(state.frame, dtype=np.uint8)
+            img_channel_first = np.moveaxis(img, -1, 0)
+            depth_frame = state.depth_frame[np.newaxis, ...]*50.0
+            img_channel_first = np.append(img_channel_first, depth_frame, axis=0)
+            obs = img_channel_first
+        elif self.observations == "rgba":
+            img = np.array(state.frame, dtype=np.uint8)
+            img_channel_first = np.moveaxis(img, -1, 0)
 
-        # color_to_id = state.color_to_object_id
-        # seg_height = seg_frame.shape[0]
-        # seg_width = seg_frame.shape[1]
-        # for jdx in range(seg_width):
-        #     for idx in range(seg_height): 
-        #         curr_rgb = [seg_frame[idx, jdx, :]]  
-        #         curr_rgb_tuple = [tuple(e) for e in curr_rgb]
-        #         curr_id = color_to_id[curr_rgb_tuple[0]]
-        #         for obj in curr_objects:
-        #             if curr_id in obj['objectId']:
-        #                 if obj['pickupable']:
-        #                     affordance_mask[0, idx, jdx] = 255
-        #                     # affordance_mask[1, idx, jdx] = 0
-        #                 elif obj['receptacle']:
-        #                     # affordance_mask[0, idx, jdx] = 0
-        #                     affordance_mask[1, idx, jdx] = 255
-        
-        # img = np.array(state.frame, dtype=np.uint8)                                                         
-        # img_channel_first = np.moveaxis(img, -1, 0)
-        # img_aff = np.concatenate((img_channel_first, affordance_mask), axis=0)
+            curr_objects = state.metadata['objects']
+            num_obj_actions = 2 # [take, put]
+            affordance_mask = np.zeros((num_obj_actions, self.args.obs_size, self.args.obs_size), dtype=np.uint8)
+            seg_frame = state.instance_segmentation_frame
 
-        # return img_aff
+            color_to_id = state.color_to_object_id
+            seg_height = seg_frame.shape[0]
+            seg_width = seg_frame.shape[1]
+            for jdx in range(seg_width):
+                for idx in range(seg_height): 
+                    curr_rgb = [seg_frame[idx, jdx, :]]  
+                    curr_rgb_tuple = [tuple(e) for e in curr_rgb]
+                    if curr_rgb_tuple[0] == (0, 0, 255):
+                        color_to_id[curr_rgb_tuple[0]] = 'DeadPixel'
+                    curr_id = color_to_id[curr_rgb_tuple[0]]
+                    for obj in curr_objects:
+                        if curr_id in obj['objectId']:
+                            if obj['pickupable']:
+                                affordance_mask[0, idx, jdx] = 255
+                                # affordance_mask[1, idx, jdx] = 0
+                            elif obj['receptacle']:
+                                # affordance_mask[0, idx, jdx] = 0
+                                affordance_mask[1, idx, jdx] = 255
+            
+            img = np.array(state.frame, dtype=np.uint8)                                                         
+            img_channel_first = np.moveaxis(img, -1, 0)
+            obs = np.concatenate((img_channel_first, affordance_mask), axis=0)
+        else:
+            raise NotImplementedError
+
+        return obs
 
     def agent_pose(self, state):
         agent = state.metadata['agent']
@@ -306,18 +333,13 @@ class ThorEnv(gym.Env):
         self.controller.reset(scene=self.scene)
         self.controller.step(dict(action='Initialize', **self.init_params))
        
-        # randomize objects (should we do it?)
+        # randomize object locations
         self.controller.step(dict(action='InitialRandomSpawn',
                 randomSeed=self.episode,
                 forceVisible=True,
                 numPlacementAttempts=5))
-        # self.controller.step(
-        #         action="RandomizeMaterials",
-        #         useTrainMaterials=None,
-        #         useValMaterials=None,
-        #         useTestMaterials=None,
-        #         inRoomTypes=None
-        #     )
+ 
+        # borrowed from interaction-exploration
         self.controller.step(dict(action='GetReachablePositions'))
         reachable_positions = [(pos['x'], pos['y'], pos['z']) for pos in self.state.metadata['actionReturn']]
         
