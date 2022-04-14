@@ -203,7 +203,7 @@ class ThorEnv(gym.Env):
                             if obj['pickupable']:
                                 affordance_mask[0, idx, jdx] = 255
                                 # affordance_mask[1, idx, jdx] = 0
-                            elif obj['receptacle']:
+                            elif (obj['receptacle'] and not obj['openable']) or (obj['receptacle'] and (obj['openable'] and obj['isOpen'])):
                                 # affordance_mask[0, idx, jdx] = 0
                                 affordance_mask[1, idx, jdx] = 255
             
