@@ -1,17 +1,19 @@
 import collections
-from platform import platform
 import gym
 from gym import spaces
+import csv
 from .config.config import config_parser
 import numpy as np
 from PIL import Image
 import itertools
+from scipy.spatial.transform import Rotation as R
 from ai2thor.controller import Controller
 from ai2thor.platform import CloudRendering
 
+
 class ThorEnv(gym.Env):
     """Custom Environment that follows gym interface"""
-    def __init__(self, mode, seed):
+    def __init__(self, mode, seed, nh):
         super(ThorEnv, self).__init__()
 
         # get args
@@ -63,6 +65,16 @@ class ThorEnv(gym.Env):
         if self.reward_type == 'interaction_count':
             self.interaction_count = collections.defaultdict(int)
 
+        # convert rgb to id
+        self.rgbs_to_id = {}
+        with open(self.args.csv_path) as csvfile:
+            reader = csv.DictReader(csvfile)
+            # header = next(reader)
+            for row in reader:
+                rgb_curr  = (int(row["R"]), int(row["G"]), int(row["B"]))
+                id_curr = int(row["InstanceID"])
+                self.rgbs_to_id[rgb_curr] = id_curr
+
         # only navigation + take and put
         self.actions = ["forward", "up", "down", "right", "left", "take", "put"]
         self.action_functions = {
@@ -89,6 +101,8 @@ class ThorEnv(gym.Env):
         self.controller = Controller(quality='Ultra', local_executable_path=local_exe, 
                                 x_display=x_display, width=self.frame_sz, height=self.frame_sz, platform=platform)
 
+        self.nh = nh
+
     # functions need to be overwritten for gym env
     def step(self, action):
         self.t += 1
@@ -112,15 +126,70 @@ class ThorEnv(gym.Env):
 
     # getters
     def get_reward(self):
+        reward = 0
         if self.reward_type == "interaction_count":
-            reward = 0
             info = self.step_info
             if (info['action'] == "take" or info['action'] == "put") and info['success']:
                 key = (info['action'], info['params']['objectId'])
                 if key not in self.interaction_count:
                     reward += 1.0
                     self.interaction_count[key] += 1
-            return reward        
+            return reward 
+        elif self.reward_type == 'submap':
+            # update ros now
+            self.nh.update_now()
+
+            # prepare data to publish
+            event = self.state
+            pitch = -event.metadata['agent']['cameraHorizon']        
+            yaw = event.metadata['agent']['rotation']['y']
+            roll  = event.metadata['agent']['rotation']['z']        
+            rotmax = R.from_euler("YXZ",[yaw, pitch, roll], degrees=True)
+            rotmax = rotmax.as_matrix()
+        
+            transx = event.metadata['agent']['position']['x']
+            transy = event.metadata['agent']['position']['y']
+            transz = event.metadata['agent']['position']['z']
+            transmat = np.array([[transx], [transy], [transz]])
+        
+            transformat = np.hstack((rotmax, transmat))
+            transformat = np.vstack((transformat, [0, 0, 0, 1]))
+            self.nh.publish_pose(transformat)
+
+            color_frame = event.frame
+            depth_frame = event.depth_frame
+            segmentation_frame = event.instance_segmentation_frame
+
+            if (color_frame is not None):
+                im = (Image.fromarray(color_frame)).convert("RGB")
+                im = np.array(im)
+                im_cv = im[:, :, ::-1].copy()
+                self.nh.publish_color(im_cv)
+
+            if (depth_frame is not None):
+                im = Image.fromarray(depth_frame)
+                self.nh.publish_depth(im)
+
+            if (segmentation_frame is not None):
+                id_frame = np.zeros_like(segmentation_frame)
+                seg_height = segmentation_frame.shape[0]
+                seg_width = segmentation_frame.shape[1]
+
+                # iterate through all pixels to map segmentation rgb to id
+                for j_idx in range(seg_width):
+                    for i_idx in range(seg_height):
+                        cur_rgb = [segmentation_frame[i_idx,j_idx, :]]  
+                        cur_rgb_tuple = [tuple(e) for e in cur_rgb]
+                        cur_id = self.rgbs_to_id[cur_rgb_tuple[0]]
+                        id_frame[i_idx,j_idx, :] = [cur_id, cur_id, cur_id]
+                im = (Image.fromarray(id_frame)).convert("RGB")
+                im = np.array(im)
+                im_cv = im[:, :, ::-1].copy()
+                self.nh.publish_id(im_cv)
+
+            # get reward from panoptic mapping
+            reward = self.nh.get_reward()
+            print(reward)
         else:
             raise NotImplementedError
 
@@ -316,8 +385,10 @@ class ThorEnv(gym.Env):
     def init_env(self):
         self.t=0
         if self.mode == "train":
-            self.scene = self.rs.choice(['FloorPlan%d'%idx for idx in range(6, 30+1)]) # 6 --> 30 = train. 1 --> 5 = test
-            self.episode = self.rs.randint(1000000000)
+            self.scene = self.debug_scene
+            self.episode = self.debug_episode
+            # self.scene = self.rs.choice(['FloorPlan%d'%idx for idx in range(6, 30+1)]) # 6 --> 30 = train. 1 --> 5 = test
+            # self.episode = self.rs.randint(1000000000)
         elif self.mode == "eval":
             self.scene, self.episode = next(self.eval_scene_iter,None), next(self.eval_episode_iter,None)
             if self.scene is None:
