@@ -21,7 +21,7 @@ def config_parser():
     parser.add_argument('--debug_episode', type=int, default=0)
 
     # training options
-    parser.add_argument("--num_processes", type=int, default=4)
+    parser.add_argument("--num_envs", type=int, default=1)
 
     # kb agent options
     parser.add_argument('--csv_path', default='/home/asl/plr/kb_agent_dataset/groundtruth_labels_debug.csv')

@@ -5,6 +5,7 @@ from stable_baselines3.common.vec_env import SubprocVecEnv, DummyVecEnv
 from models.CustomCNN import CustomCNN
 from stable_baselines3.common.monitor import Monitor
 from bridge import Bridge
+from envs.config.config import config_parser
 
 # ROS imports
 import rospy
@@ -43,11 +44,17 @@ def make_eval_env(seed, nh):
 
 
 if __name__=='__main__':
-    
-    rospy.init_node('mapper')
-    mapper = Bridge()
 
-    num_processes = 2
+    parser = config_parser()
+    args = parser.parse_args()
+    rospy.init_node("mapper")
+
+    num_processes = args.num_envs
+    mappers = []
+    for i in range(num_processes):        
+        mappers.append(Bridge(env_index = i))
+
+
 
     # evaluation environment
     # eval_env = SubprocVecEnv([make_eval_env(seed=2336435, nh=mapper)])
@@ -58,7 +65,7 @@ if __name__=='__main__':
     # train environment
     # train_env = ThorEnv(mode='debug', seed=73745, nh=mapper)
     # train_env = SubprocVecEnv([make_env(rank=i, nh=mapper) for i in range(num_processes)])    
-    train_env = SubprocVecEnv([make_env(rank=i, nh=mapper) for i in range(num_processes)])    
+    train_env = DummyVecEnv([make_env(rank=i, nh=mappers[i]) for i in range(num_processes)])    
     
     policy_kwargs = dict(
         features_extractor_class=CustomCNN,
