@@ -24,7 +24,7 @@ def config_parser():
     parser.add_argument("--num_processes", type=int, default=4)
 
     # kb agent options
-    parser.add_argument('--csv_path', default='/home/iremkaftan/Desktop/kb_agent_dataset/groundtruth_labels_debug.csv')
+    parser.add_argument('--csv_path', default='/home/asl/plr/kb_agent_dataset/groundtruth_labels_debug.csv')
     parser.add_argument('--save_path', default='/home/iremkaftan/Desktop/kb_agent_dataset/run1')
 
     return parser

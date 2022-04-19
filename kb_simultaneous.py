@@ -132,9 +132,9 @@ class KBController():
         self.center = ((self.args.frame_size//self.N)*(self.N//2), (self.args.frame_size//self.N)*(self.N+1)//2)
         self.center_box = [self.center[0], self.center[0], self.center[1], self.center[1]]
 
-        self.timestamp = open(f"{self.args.save_path}/timestamps.csv", 'w')
-        self.writer = csv.writer(self.timestamp)
-        self.writer.writerow(['ImageID', 'TimeStamp'])
+        # self.timestamp = open(f"{self.args.save_path}/timestamps.csv", 'w')
+        # self.writer = csv.writer(self.timestamp)
+        # self.writer.writerow(['ImageID', 'TimeStamp'])
 
         self.rgbs_to_id = {}
         with open(self.args.csv_path) as csvfile:
@@ -236,7 +236,7 @@ class KBController():
             self.nh.publish_id(im_cv)
 
         frame = torch.from_numpy(np.array(event.frame)).float().permute(2, 0, 1)/255
-        frame = F.interpolate(frame.unsqueeze(0), 300, mode='bilinear', align_corners=True)[0]
+        frame = F.interpolate(frame.unsqueeze(0), 80, mode='bilinear', align_corners=True)[0]
         frame = add_rectangle(frame, self.center_box)
 
         utils.show_wait(frame, T=1, win='frame')
