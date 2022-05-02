@@ -102,6 +102,7 @@ class ThorEnv(gym.Env):
                                 x_display=x_display, width=self.frame_sz, height=self.frame_sz, platform=platform)
 
         self.nh = nh
+        self.last_rew_timestamp = 0
 
     # functions need to be overwritten for gym env
     def step(self, action):
@@ -154,7 +155,8 @@ class ThorEnv(gym.Env):
         
             transformat = np.hstack((rotmax, transmat))
             transformat = np.vstack((transformat, [0, 0, 0, 1]))
-            self.nh.publish_pose(transformat)
+            self.nh.set_pose(transformat)
+            self.nh.publish_pose()
 
             color_frame = event.frame
             depth_frame = event.depth_frame
@@ -164,11 +166,13 @@ class ThorEnv(gym.Env):
                 im = (Image.fromarray(color_frame)).convert("RGB")
                 im = np.array(im)
                 im_cv = im[:, :, ::-1].copy()
-                self.nh.publish_color(im_cv)
+                self.nh.set_color(im_cv)
+                self.nh.publish_color()
 
             if (depth_frame is not None):
                 im = Image.fromarray(depth_frame)
-                self.nh.publish_depth(im)
+                self.nh.set_depth(im)
+                self.nh.publish_depth()
 
             if (segmentation_frame is not None):
                 id_frame = np.zeros_like(segmentation_frame)
@@ -185,13 +189,15 @@ class ThorEnv(gym.Env):
                 im = (Image.fromarray(id_frame)).convert("RGB")
                 im = np.array(im)
                 im_cv = im[:, :, ::-1].copy()
-                self.nh.publish_id(im_cv)
+                self.nh.set_id(im_cv)
+                self.nh.publish_id()
 
             # get reward from panoptic mapping
             reward = self.nh.get_reward()
-            print(reward)
+            print(f"t={self.t} | reward={reward}")
         else:
             raise NotImplementedError
+        return reward
 
     def get_done(self):
         return self.t>=self.max_t
