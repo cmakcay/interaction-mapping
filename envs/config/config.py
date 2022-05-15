@@ -16,12 +16,13 @@ def config_parser():
     parser.add_argument("--num_steps", type=int, default=256, help="when each episode ends")
     parser.add_argument("--eval_scenes", nargs="+", default=["FloorPlan1", "FloorPlan2", "FloorPlan3", "FloorPlan4", "FloorPlan5", "FloorPlan1", "FloorPlan2", "FloorPlan3"])
     parser.add_argument("--eval_episodes", nargs="+", default=[12345, 31452, 52314, 41235, 25431, 72583, 67213, 93275])
-    parser.add_argument("--reward_type", type=str, default="submap")
+    parser.add_argument("--reward_type", type=str, default="map_int_count")
     parser.add_argument('--debug_scene', type=str, default='FloorPlan1')
     parser.add_argument('--debug_episode', type=int, default=0)
 
     # training options
-    parser.add_argument("--num_envs", type=int, default=1)
+    parser.add_argument("--num_train_envs", type=int, default=3)
+    parser.add_argument("--num_eval_envs", type=int, default=5)
 
     # kb agent options
     parser.add_argument('--csv_path', default='/home/asl/plr/kb_agent_dataset/groundtruth_labels_debug.csv')

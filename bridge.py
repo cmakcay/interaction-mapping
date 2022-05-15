@@ -4,6 +4,7 @@ import numpy as np
 import rospy
 from sensor_msgs.msg import Image
 from std_msgs.msg import Int8
+from std_msgs.msg import Float64
 from cv_bridge import CvBridge
 import tf
 from geometry_msgs.msg import PoseStamped
@@ -29,8 +30,8 @@ class Bridge:
     def update_now(self):
         self.now = rospy.Time.now()
 
-    def publish_pose(self):
-        pose = self.pose.flatten()
+    def publish_pose(self, pose):
+        pose = pose.flatten()
         pose_data = [float("{:.6f}".format(x)) for x in pose]
         transform = np.eye(4)
         for row in range(4):
@@ -52,20 +53,20 @@ class Bridge:
         pose_msg.pose.orientation.w = rotation[3]
         self.pose_pub.publish(pose_msg)
 
-    def publish_color(self):
-        img_msg = self.cv_bridge.cv2_to_imgmsg(self.color, "bgr8")
+    def publish_color(self, cv_img):
+        img_msg = self.cv_bridge.cv2_to_imgmsg(cv_img, "bgr8")
         img_msg.header.stamp = self.now
         img_msg.header.frame_id = self.sensor_frame_name
         self.color_pub.publish(img_msg)
     
-    def publish_depth(self):
-        img_msg = self.cv_bridge.cv2_to_imgmsg(np.array(self.depth), "32FC1")
+    def publish_depth(self, cv_img):
+        img_msg = self.cv_bridge.cv2_to_imgmsg(np.array(cv_img), "32FC1")
         img_msg.header.stamp = self.now
         img_msg.header.frame_id = self.sensor_frame_name
         self.depth_pub.publish(img_msg)
 
-    def publish_id(self):
-        img_msg = self.cv_bridge.cv2_to_imgmsg(self.id[:, :, 0], "8UC1")
+    def publish_id(self, cv_img):
+        img_msg = self.cv_bridge.cv2_to_imgmsg(cv_img[:, :, 0], "8UC1")
         img_msg.header.stamp = self.now
         img_msg.header.frame_id = self.sensor_frame_name
         self.id_pub.publish(img_msg)
@@ -75,20 +76,9 @@ class Bridge:
     #     self.reward = data.data
 
     def get_reward(self):
-        data = rospy.wait_for_message(f"/panoptic_mapper_{self.env_index}/reward", Int8, None)
-        self.reward = int(data.data)
+        try:
+            data = rospy.wait_for_message(f"/panoptic_mapper_{self.env_index}/reward", Float64, timeout=0.5)
+            self.reward = int(data.data)
+        except rospy.ROSException:
+            self.reward = 0
         return self.reward
-
-    # setters
-
-    def set_pose(self, pose):
-        self.pose = pose
-    
-    def set_color(self, color):
-        self.color = color
-    
-    def set_id(self, id):
-        self.id = id
-    
-    def set_depth(self, depth):
-        self.depth = depth

@@ -20,13 +20,13 @@ def make_env(rank, nh, seed=0):
     :param rank: (int) index of the subprocess
     """
     def _init():
-        env = ThorEnv(mode="debug", seed=seed + 173127*rank, nh=nh)
+        env = ThorEnv(mode="train", seed=seed + 173127*rank, nh=nh)
         env.seed(seed + 173127*rank)
         return Monitor(env)
 
     return _init
 
-def make_eval_env(seed, nh):
+def make_eval_env(nh, seed=0):
     """
     Utility function for multiprocessed env.
 
@@ -49,18 +49,22 @@ if __name__=='__main__':
     args = parser.parse_args()
     rospy.init_node("mapper")
 
-    num_processes = args.num_envs
+    num_processes = args.num_train_envs
+    num_eval_envs = args.num_eval_envs
+
+    eval_mappers = []
+    for i in range(num_eval_envs):        
+        eval_mappers.append(Bridge(env_index = i))
+
     mappers = []
     for i in range(num_processes):        
-        mappers.append(Bridge(env_index = i))
-
-
+        mappers.append(Bridge(env_index = num_eval_envs + i))
 
     # evaluation environment
-    # eval_env = SubprocVecEnv([make_eval_env(seed=2336435, nh=mapper)])
-    # eval_callback = EvalCallback(eval_env, best_model_save_path='./logs/',
-    #                          log_path='./logs/', eval_freq=2560,
-    #                          deterministic=False, render=False, n_eval_episodes=8)
+    eval_env = DummyVecEnv([make_eval_env(nh=eval_mappers[i]) for i in range(num_eval_envs)])
+    eval_callback = EvalCallback(eval_env, best_model_save_path='./logs/',
+                             log_path='./logs/', eval_freq=2560,
+                             deterministic=False, render=False, n_eval_episodes=5)
 
     # train environment
     # train_env = ThorEnv(mode='debug', seed=73745, nh=mapper)

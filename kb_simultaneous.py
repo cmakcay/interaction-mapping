@@ -13,6 +13,7 @@ import torchvision.transforms as transforms
 import csv
 from scipy.spatial.transform import Rotation as R
 
+from bridge import Bridge
 from envs import utils
 from envs.thor import ThorEnv
 from envs.config.config import config_parser
@@ -23,6 +24,7 @@ from sensor_msgs.msg import Image
 import tf
 from geometry_msgs.msg import PoseStamped
 from cv_bridge import CvBridge
+from std_msgs.msg import Int8
 
 def get_term_character():
     fd = sys.stdin.fileno()
@@ -42,64 +44,70 @@ def add_rectangle(tensor, bbox):
     return tensor
 
 
-class ROSHandle:
-    def __init__(self):
-        self.global_frame_name = "world"
-        self.sensor_frame_name = "depth_cam"
+# class ROSHandle:
+#     def __init__(self, env_index):
+#         self.global_frame_name = "world"
+#         self.sensor_frame_name = "depth_cam"
+#         self.reward = 0
+#         self.env_index = env_index
 
-        self.color_pub = rospy.Publisher("~color_image", Image, queue_size=100)
-        self.depth_pub = rospy.Publisher("~depth_image", Image, queue_size=100)
-        self.id_pub = rospy.Publisher("~segmentation_image", Image, queue_size=100)
-        self.pose_pub = rospy.Publisher("~pose", PoseStamped, queue_size=100)
-        self.tf_broadcaster = tf.TransformBroadcaster()
+#         self.color_pub = rospy.Publisher(f"~color_image_{env_index}", Image, queue_size=100)
+#         self.depth_pub = rospy.Publisher(f"~depth_image_{env_index}", Image, queue_size=100)
+#         self.id_pub = rospy.Publisher(f"~segmentation_image_{env_index}", Image, queue_size=100)
+#         self.pose_pub = rospy.Publisher(f"~pose_{env_index}", PoseStamped, queue_size=100)
+#         self.tf_broadcaster = tf.TransformBroadcaster()
         
-        self.cv_bridge = CvBridge()
-        self.now = rospy.Time.now()
+#         self.cv_bridge = CvBridge()
+#         self.now = rospy.Time.now()
 
-    def update_now(self):
-        self.now = rospy.Time.now()
+#     def update_now(self):
+#         self.now = rospy.Time.now()
 
-    def publish_pose(self, pose):
-        pose = pose.flatten()
-        pose_data = [float("{:.6f}".format(x)) for x in pose]
-        transform = np.eye(4)
-        for row in range(4):
-            for col in range(4):
-                transform[row, col] = pose_data[row * 4 + col]
-        rotation = tf.transformations.quaternion_from_matrix(transform)
-        self.tf_broadcaster.sendTransform(
-            (transform[0, 3], transform[1, 3], transform[2, 3]), rotation,
-            self.now, self.sensor_frame_name, self.global_frame_name)
-        pose_msg = PoseStamped()
-        pose_msg.header.stamp = self.now
-        pose_msg.header.frame_id = self.global_frame_name
-        pose_msg.pose.position.x = pose_data[3]
-        pose_msg.pose.position.y = pose_data[7]
-        pose_msg.pose.position.z = pose_data[11]
-        pose_msg.pose.orientation.x = rotation[0]
-        pose_msg.pose.orientation.y = rotation[1]
-        pose_msg.pose.orientation.z = rotation[2]
-        pose_msg.pose.orientation.w = rotation[3]
-        self.pose_pub.publish(pose_msg)
+#     def publish_pose(self, pose):
+#         pose = pose.flatten()
+#         pose_data = [float("{:.6f}".format(x)) for x in pose]
+#         transform = np.eye(4)
+#         for row in range(4):
+#             for col in range(4):
+#                 transform[row, col] = pose_data[row * 4 + col]
+#         rotation = tf.transformations.quaternion_from_matrix(transform)
+#         self.tf_broadcaster.sendTransform(
+#             (transform[0, 3], transform[1, 3], transform[2, 3]), rotation,
+#             self.now, self.sensor_frame_name, self.global_frame_name)
+#         pose_msg = PoseStamped()
+#         pose_msg.header.stamp = self.now
+#         pose_msg.header.frame_id = self.global_frame_name
+#         pose_msg.pose.position.x = pose_data[3]
+#         pose_msg.pose.position.y = pose_data[7]
+#         pose_msg.pose.position.z = pose_data[11]
+#         pose_msg.pose.orientation.x = rotation[0]
+#         pose_msg.pose.orientation.y = rotation[1]
+#         pose_msg.pose.orientation.z = rotation[2]
+#         pose_msg.pose.orientation.w = rotation[3]
+#         self.pose_pub.publish(pose_msg)
     
-    def publish_color(self, cv_img):
-        img_msg = self.cv_bridge.cv2_to_imgmsg(cv_img, "bgr8")
-        img_msg.header.stamp = self.now
-        img_msg.header.frame_id = self.sensor_frame_name
-        self.color_pub.publish(img_msg)
+#     def publish_color(self, cv_img):
+#         img_msg = self.cv_bridge.cv2_to_imgmsg(cv_img, "bgr8")
+#         img_msg.header.stamp = self.now
+#         img_msg.header.frame_id = self.sensor_frame_name
+#         self.color_pub.publish(img_msg)
     
-    def publish_depth(self, cv_img):
-        img_msg = self.cv_bridge.cv2_to_imgmsg(np.array(cv_img), "32FC1")
-        img_msg.header.stamp = self.now
-        img_msg.header.frame_id = self.sensor_frame_name
-        self.depth_pub.publish(img_msg)
+#     def publish_depth(self, cv_img):
+#         img_msg = self.cv_bridge.cv2_to_imgmsg(np.array(cv_img), "32FC1")
+#         img_msg.header.stamp = self.now
+#         img_msg.header.frame_id = self.sensor_frame_name
+#         self.depth_pub.publish(img_msg)
 
-    def publish_id(self, cv_img):
-        img_msg = self.cv_bridge.cv2_to_imgmsg(cv_img[:, :, 0], "8UC1")
-        img_msg.header.stamp = self.now
-        img_msg.header.frame_id = self.sensor_frame_name
-        self.id_pub.publish(img_msg)
+#     def publish_id(self, cv_img):
+#         img_msg = self.cv_bridge.cv2_to_imgmsg(cv_img[:, :, 0], "8UC1")
+#         img_msg.header.stamp = self.now
+#         img_msg.header.frame_id = self.sensor_frame_name
+#         self.id_pub.publish(img_msg)
 
+#     def get_reward(self):
+#         data = rospy.wait_for_message(f"/panoptic_mapper_{self.env_index}/reward", Int8, None)
+#         self.reward = int(data.data)
+#         return self.reward
 
 class KBController():
     def __init__(self, nh):
@@ -120,7 +128,7 @@ class KBController():
 
         self.args.num_processes = 1
 
-        self.env = ThorEnv(mode='debug', seed=73745)
+        self.env = ThorEnv(mode='debug', seed=73745, nh=nh)
         self.obs = self.env.reset()[0]
 
         self.act_to_idx = collections.defaultdict(lambda: -1)
@@ -132,9 +140,9 @@ class KBController():
         self.center = ((self.args.frame_size//self.N)*(self.N//2), (self.args.frame_size//self.N)*(self.N+1)//2)
         self.center_box = [self.center[0], self.center[0], self.center[1], self.center[1]]
 
-        self.timestamp = open(f"{self.args.save_path}/timestamps.csv", 'w')
-        self.writer = csv.writer(self.timestamp)
-        self.writer.writerow(['ImageID', 'TimeStamp'])
+        # self.timestamp = open(f"{self.args.save_path}/timestamps.csv", 'w')
+        # self.writer = csv.writer(self.timestamp)
+        # self.writer.writerow(['ImageID', 'TimeStamp'])
 
         self.rgbs_to_id = {}
         with open(self.args.csv_path) as csvfile:
@@ -177,66 +185,57 @@ class KBController():
 
     def render(self):
         event = self.env.state
+
+        # self.nh.update_now()
+
+        # pitch = -event.metadata['agent']['cameraHorizon']        
+        # yaw = event.metadata['agent']['rotation']['y']
+        # roll  = event.metadata['agent']['rotation']['z']        
+        # rotmax = R.from_euler("YXZ",[yaw, pitch, roll], degrees=True)
+        # rotmax = rotmax.as_matrix()
         
-        # update ros now
-        self.nh.update_now()
-
-        # data for panoptic mapping
-
-        # pose of robot camera
-        # rotation
-        pitch = -event.metadata['agent']['cameraHorizon']        
-        yaw = event.metadata['agent']['rotation']['y']
-        roll  = event.metadata['agent']['rotation']['z']        
-        rotmax = R.from_euler("YXZ",[yaw, pitch, roll], degrees=True)
-        rotmax = rotmax.as_matrix()
+        # transx = event.metadata['agent']['position']['x']
+        # transy = event.metadata['agent']['position']['y']
+        # transz = event.metadata['agent']['position']['z']
+        # transmat = np.array([[transx], [transy], [transz]])
         
-        # translation
-        transx = event.metadata['agent']['position']['x']
-        transy = event.metadata['agent']['position']['y']
-        transz = event.metadata['agent']['position']['z']
-        transmat = np.array([[transx], [transy], [transz]])
+        # transformat = np.hstack((rotmax, transmat))
+        # transformat = np.vstack((transformat, [0, 0, 0, 1]))
+        # self.nh.publish_pose(transformat)
         
-        # rot + trans matrix
-        transformat = np.hstack((rotmax, transmat))
-        transformat = np.vstack((transformat, [0, 0, 0, 1]))
-        self.nh.publish_pose(transformat)
-        
-        # color + depth + segmentation images
-        color_frame = event.frame 
-        depth_frame = event.depth_frame
-        segmentation_frame = event.instance_segmentation_frame
+        # color_frame = event.frame 
+        # depth_frame = event.depth_frame
+        # segmentation_frame = event.instance_segmentation_frame
 
-        if (color_frame is not None):
-            im = (PilImage.fromarray(color_frame)).convert("RGB")
-            im = np.array(im)
-            im_cv = im[:, :, ::-1].copy()
-            self.nh.publish_color(im_cv)
+        # if (color_frame is not None):
+        #     im = (PilImage.fromarray(color_frame)).convert("RGB")
+        #     im = np.array(im)
+        #     im_cv = im[:, :, ::-1].copy()
+        #     self.nh.publish_color(im_cv)
 
-        if (depth_frame is not None):
-            im = PilImage.fromarray(depth_frame)
-            self.nh.publish_depth(im)
+        # if (depth_frame is not None):
+        #     im = PilImage.fromarray(depth_frame)
+        #     self.nh.publish_depth(im)
 
-        if (segmentation_frame is not None):
+        # if (segmentation_frame is not None):
             
-            id_frame = np.zeros_like(segmentation_frame)
-            seg_height = segmentation_frame.shape[0]
-            seg_width = segmentation_frame.shape[1]
+        #     id_frame = np.zeros_like(segmentation_frame)
+        #     seg_height = segmentation_frame.shape[0]
+        #     seg_width = segmentation_frame.shape[1]
 
-            # iterate through all pixels to map segmentation rgb to id
-            for j_idx in range(seg_width):
-              for i_idx in range(seg_height):
-                cur_rgb = [segmentation_frame[i_idx,j_idx, :]]  
-                cur_rgb_tuple = [tuple(e) for e in cur_rgb]
-                cur_id = self.rgbs_to_id[cur_rgb_tuple[0]]
-                id_frame[i_idx,j_idx, :] = [cur_id, cur_id, cur_id]
-            im = (PilImage.fromarray(id_frame)).convert("RGB")
-            im = np.array(im)
-            im_cv = im[:, :, ::-1].copy()
-            self.nh.publish_id(im_cv)
+        #     for j_idx in range(seg_width):
+        #       for i_idx in range(seg_height):
+        #         cur_rgb = [segmentation_frame[i_idx,j_idx, :]]  
+        #         cur_rgb_tuple = [tuple(e) for e in cur_rgb]
+        #         cur_id = self.rgbs_to_id[cur_rgb_tuple[0]]
+        #         id_frame[i_idx,j_idx, :] = [cur_id, cur_id, cur_id]
+        #     im = (PilImage.fromarray(id_frame)).convert("RGB")
+        #     im = np.array(im)
+        #     im_cv = im[:, :, ::-1].copy()
+        #     self.nh.publish_id(im_cv)
 
         frame = torch.from_numpy(np.array(event.frame)).float().permute(2, 0, 1)/255
-        frame = F.interpolate(frame.unsqueeze(0), 300, mode='bilinear', align_corners=True)[0]
+        frame = F.interpolate(frame.unsqueeze(0), 80, mode='bilinear', align_corners=True)[0]
         frame = add_rectangle(frame, self.center_box)
 
         utils.show_wait(frame, T=1, win='frame')
@@ -289,8 +288,11 @@ class KBController():
 if __name__ == '__main__':
     os.environ['LDISPLAY'] = os.environ['DISPLAY']
 
-    rospy.init_node('kb_agent')
-    kb_agent = ROSHandle()
+    # rospy.init_node('kb_agent')
+    # kb_agent = ROSHandle(env_index=0)
 
-    controller = KBController(nh=kb_agent)
+    rospy.init_node("mapper")
+    mapper = Bridge(env_index = 0)
+
+    controller = KBController(nh=mapper)
     controller.run()
