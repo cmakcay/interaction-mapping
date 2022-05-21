@@ -7,11 +7,12 @@ from PIL import Image
 import itertools
 from ai2thor.controller import Controller
 from ai2thor.platform import CloudRendering
+import csv
 
-class ThorEnv(gym.Env):
+class ThorEvaluateEnv(gym.Env):
     """Custom Environment that follows gym interface"""
-    def __init__(self, mode, seed):
-        super(ThorEnv, self).__init__()
+    def __init__(self, seed):
+        super(ThorEvaluateEnv, self).__init__()
 
         # get args
         parser = config_parser()
@@ -33,6 +34,16 @@ class ThorEnv(gym.Env):
         else:
             raise NotImplementedError
 
+        # read scenes and episodes
+        self.eval_episodes, self.eval_scenes = [], []
+        with open("/home/asl/plr/interaction-mapping/envs/config/evaluate_list.csv", mode='r') as inp:
+            reader = csv.reader(inp)
+            next(reader)
+            for rows in reader:
+                self.eval_scenes.append(rows[0])
+                self.eval_episodes.append(int(rows[1]))
+        self.eval_episode_iter = iter(self.eval_episodes)
+        self.eval_scene_iter = iter(self.eval_scenes)
         
         # set global args for the class
         self.rs = np.random.RandomState(seed) #set random seed for same training data
@@ -44,26 +55,11 @@ class ThorEnv(gym.Env):
             'width': 80, #setting height and width here doesnt work, also set below
             'height': 80, 
         }
-        self.mode = mode #train or eval
         self.rot_size_x = self.args.rot_size_x
         self.rot_size_y = self.args.rot_size_y
         self.frame_sz = self.args.frame_size
         self.max_t = self.args.num_steps
         self.reward_type = self.args.reward_type
-
-        self.eval_episodes = self.args.eval_episodes # use predefined scenes and episodes for evaluation
-        self.eval_scenes = self.args.eval_scenes
-        self.eval_episode_iter = iter(self.eval_episodes)
-        self.eval_scene_iter = iter(self.eval_scenes)
-        self.debug_scene = self.args.debug_scene # use predefined scene for debugging
-        self.debug_episode = self.args.debug_episode
-        
-        # reward specific parameters
-        if self.reward_type == "interaction_count":
-            self.interaction_count = collections.defaultdict(int)
-        if self.reward_type == "interaction_navigation":    
-            self.interaction_count = collections.defaultdict(int)
-            self.camera_poses = collections.defaultdict(int)
         
         # only navigation + take and put
         self.actions = ["forward", "up", "down", "right", "left", "take", "put"]
@@ -91,6 +87,8 @@ class ThorEnv(gym.Env):
         self.controller = Controller(quality='Ultra', local_executable_path=local_exe, 
                                 x_display=x_display, width=self.frame_sz, height=self.frame_sz, platform=platform)
 
+        self.interaction_count = collections.defaultdict(int)
+
     # functions need to be overwritten for gym env
     def step(self, action):
         self.t += 1
@@ -114,35 +112,13 @@ class ThorEnv(gym.Env):
 
     # getters
     def get_reward(self):
-        if self.reward_type == "interaction_count":
-            reward = 0
-            info = self.step_info
-            if (info['action'] == "take" or info['action'] == "put") and info['success']:
-                key = (info['action'], info['params']['objectId'])
-                if key not in self.interaction_count:
-                    reward += 1.0
-                    self.interaction_count[key] += 1
-            return reward        
-        elif self.reward_type == "interaction_navigation":
-            int_reward = 0
-            nav_reward = 0
-            info = self.step_info
-            if (info['action'] == "take" or info['action'] == "put") and info['success']:
-                key = (info['action'], info['params']['objectId'])
-                if key not in self.interaction_count:
-                    int_reward += 1.0
-                    self.interaction_count[key] += 1
- 
-            x, y, z, rot, hor = self.agent_pose(self.state)
-            # pose_key = (x, y, z , rot, hor)
-            pose_key = (x, y, z)
-            if pose_key not in self.camera_poses:
-                nav_reward+=0.4
-                self.camera_poses[pose_key]+=1
-            reward = int_reward+nav_reward
-            return reward        
-        else:
-            raise NotImplementedError
+        info = self.step_info
+        if (info['action'] == "take") and info['success']:
+            key = (info['action'], info['params']['objectId'])
+            if key not in self.interaction_count:
+                self.interaction_count[key] += 1
+        print("ratio of picked up: ", len(self.interaction_count)/self.pickupable_objs)
+        return 0
 
     def get_done(self):
         return self.t>=self.max_t
@@ -248,6 +224,12 @@ class ThorEnv(gym.Env):
         return self.controller.last_event
 
     @property
+    def pickupable_objs(self):
+        curr_objects = self.state.metadata['objects']
+        pickupable_objects = [obj for obj in curr_objects if obj['pickupable']]
+        return len(pickupable_objects)
+
+    @property
     def inv_obj(self):
         inventory = self.state.metadata['inventoryObjects']
         return inventory[0]['objectId'] if len(inventory) > 0 else None
@@ -321,35 +303,16 @@ class ThorEnv(gym.Env):
 
         return action_info
     
-    # initialize the environment for kb agent
-    def init_env_debug(self):
-        self.scene = self.debug_scene
-        self.episode = self.debug_episode
-
-        self.controller.reset(self.scene)
-        self.controller.step(dict(action='Initialize', **self.init_params))
-        self.controller.step(dict(action='GetReachablePositions'))
-        self.reachable_positions = set([(pos['x'], pos['y'], pos['z']) for pos in self.state.metadata['actionReturn']])
-        self.controller.step(dict(action='TeleportFull', position=dict(x=0, y=0.9009991, z=2.25), rotation=dict(x=0, y=180, z=0), horizon=0, standing=True))
 
     # initialize the environment
     def init_env(self):
         self.t=0
-        if self.mode == "train":
-            self.scene = self.rs.choice(['FloorPlan%d'%idx for idx in range(6, 30+1)]) # 6 --> 30 = train. 1 --> 5 = test
-            self.episode = self.rs.randint(1000000000)
-        elif self.mode == "eval":
-            self.scene, self.episode = next(self.eval_scene_iter,None), next(self.eval_episode_iter,None)
-            if self.scene is None:
-                self.eval_episode_iter = iter(self.eval_episodes)
-                self.eval_scene_iter = iter(self.eval_scenes)
-                self.scene, self.episode = next(self.eval_scene_iter), next(self.eval_episode_iter)
-        elif self.mode =="debug":
-            self.init_env_debug()
-            return
-        else:
-            raise NotImplementedError
-
+        self.scene, self.episode = next(self.eval_scene_iter,None), next(self.eval_episode_iter,None)
+        if self.scene is None:
+            self.eval_episode_iter = iter(self.eval_episodes)
+            self.eval_scene_iter = iter(self.eval_scenes)
+            self.scene, self.episode = next(self.eval_scene_iter), next(self.eval_episode_iter)
+     
         self.controller.reset(scene=self.scene)
         self.controller.step(dict(action='Initialize', **self.init_params))
        
@@ -370,10 +333,4 @@ class ThorEnv(gym.Env):
                             rotation=dict(x=0, y=rot, z=0), horizon=0, standing=True))
         
         self.reachable_positions = set(reachable_positions)
-
-        # reward specific parameters
-        if self.reward_type == "interaction_count":
-            self.interaction_count = collections.defaultdict(int)
-        if self.reward_type == "interaction_navigation":    
-            self.interaction_count = collections.defaultdict(int)
-            self.camera_poses = collections.defaultdict(int)
+        self.interaction_count = collections.defaultdict(int)
