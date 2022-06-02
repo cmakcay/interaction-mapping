@@ -31,10 +31,14 @@ class ThorEvaluateEnv(gym.Env):
             num_channels == 4
         elif self.observations == "rgba":
             num_channels = 5
+        elif self.observations == "rgbda":
+            num_channels = 6
         else:
             raise NotImplementedError
 
-        # read scenes and episodes
+        # set scene and episode
+        # self.eval_scene = 'FloorPlan1'
+        # self.eval_episode = 92986
         self.eval_episodes, self.eval_scenes = [], []
         with open("/home/asl/plr/interaction-mapping/envs/config/evaluate_list.csv", mode='r') as inp:
             reader = csv.reader(inp)
@@ -46,7 +50,7 @@ class ThorEvaluateEnv(gym.Env):
         self.eval_scene_iter = iter(self.eval_scenes)
         
         # set global args for the class
-        self.rs = np.random.RandomState(seed) #set random seed for same training data
+        self.seed = seed
         self.init_params = {
             'gridSize': 0.25,
             'renderDepthImage': True,
@@ -88,6 +92,10 @@ class ThorEvaluateEnv(gym.Env):
                                 x_display=x_display, width=self.frame_sz, height=self.frame_sz, platform=platform)
 
         self.interaction_count = collections.defaultdict(int)
+        self.camera_poses = collections.defaultdict(int)
+
+        self.int_fraction_logger = csv.writer(open("fraction_logs/interaction_log.csv", 'w', newline=''))
+        self.position_fraction_logger = csv.writer(open("fraction_logs/position_log.csv", 'w', newline=''))
 
     # functions need to be overwritten for gym env
     def step(self, action):
@@ -97,6 +105,18 @@ class ThorEvaluateEnv(gym.Env):
         reward = self.get_reward()
         done = self.get_done()
         self.step_info.update({'reward':reward, 'done':done})
+
+        # color_to_id = self.state.color_to_object_id
+        # if (color_to_id is not None):
+        #     list_of_dicsts = []
+        #     for key, value in color_to_id.items():
+        #         list_of_dicsts.append({"color": key, "id": value})
+
+        #     with open(f'colors_ids_{self.scene}_{self.episode}.csv', 'w') as csvfile:
+        #         writer = csv.DictWriter(csvfile, fieldnames=["color", "id"])
+        #         writer.writeheader()
+        #         writer.writerows(list_of_dicsts) 
+
         return observation, reward, done, self.step_info
 
     def reset(self):
@@ -104,6 +124,8 @@ class ThorEvaluateEnv(gym.Env):
         return self.get_observation(self.state)
 
     def close(self):
+        self.int_fraction_logger.close()
+        self.position_fraction_logger.close()
         self.controller.stop()
 
     def render(self):
@@ -117,7 +139,21 @@ class ThorEvaluateEnv(gym.Env):
             key = (info['action'], info['params']['objectId'])
             if key not in self.interaction_count:
                 self.interaction_count[key] += 1
-        print("ratio of picked up: ", len(self.interaction_count)/self.pickupable_objs)
+        object_ratio = len(self.interaction_count) / self.pickupable_objs
+        print("ratio of picked up objects: ", object_ratio)
+
+        x, y, z, rot, hor = self.agent_pose(self.state)
+
+        pose_key = (x, z)
+        if pose_key not in self.camera_poses:
+            self.camera_poses[pose_key]+=1
+        pose_ratio = len(self.camera_poses) / len(self.reachable_positions)
+        print("ratio of visited positions: ", pose_ratio)
+        
+        self.int_fraction_logger.writerow([self.scene, self.episode, object_ratio])
+        self.position_fraction_logger.writerow([self.scene, self.episode, pose_ratio])
+
+
         return 0
 
     def get_done(self):
@@ -206,6 +242,39 @@ class ThorEvaluateEnv(gym.Env):
             img = np.array(state.frame, dtype=np.uint8)                                                         
             img_channel_first = np.moveaxis(img, -1, 0)
             obs = np.concatenate((img_channel_first, affordance_mask), axis=0)
+
+        elif self.observations == "rgbda":
+            img = np.array(state.frame, dtype=np.uint8)
+            img_channel_first = np.moveaxis(img, -1, 0)
+
+            curr_objects = state.metadata['objects']
+            num_obj_actions = 2 # [take, put]
+            affordance_mask = np.zeros((num_obj_actions, self.args.obs_size, self.args.obs_size), dtype=np.uint8)
+            seg_frame = state.instance_segmentation_frame
+
+            color_to_id = state.color_to_object_id
+            seg_height = seg_frame.shape[0]
+            seg_width = seg_frame.shape[1]
+            for jdx in range(seg_width):
+                for idx in range(seg_height): 
+                    curr_rgb = [seg_frame[idx, jdx, :]]  
+                    curr_rgb_tuple = [tuple(e) for e in curr_rgb]
+                    if curr_rgb_tuple[0] == (0, 0, 255):
+                        color_to_id[curr_rgb_tuple[0]] = 'DeadPixel'
+                    curr_id = color_to_id[curr_rgb_tuple[0]]
+                    for obj in curr_objects:
+                        if curr_id in obj['objectId']:
+                            if obj['pickupable']:
+                                affordance_mask[0, idx, jdx] = 255
+                                # affordance_mask[1, idx, jdx] = 0
+                            elif (obj['receptacle'] and not obj['openable']) or (obj['receptacle'] and (obj['openable'] and obj['isOpen'])):
+                                # affordance_mask[0, idx, jdx] = 0
+                                affordance_mask[1, idx, jdx] = 255
+            
+            img = np.array(state.frame, dtype=np.uint8)                                                         
+            img_channel_first = np.moveaxis(img, -1, 0)
+            depth_frame = state.depth_frame[np.newaxis, ...]*50.0
+            obs = np.concatenate((img_channel_first, depth_frame, affordance_mask), axis=0)
         else:
             raise NotImplementedError
 
@@ -307,6 +376,8 @@ class ThorEvaluateEnv(gym.Env):
     # initialize the environment
     def init_env(self):
         self.t=0
+        # self.scene = self.eval_scene
+        # self.episode = self.eval_episode
         self.scene, self.episode = next(self.eval_scene_iter,None), next(self.eval_episode_iter,None)
         if self.scene is None:
             self.eval_episode_iter = iter(self.eval_episodes)
@@ -334,3 +405,5 @@ class ThorEvaluateEnv(gym.Env):
         
         self.reachable_positions = set(reachable_positions)
         self.interaction_count = collections.defaultdict(int)
+        self.camera_poses = collections.defaultdict(int)
+

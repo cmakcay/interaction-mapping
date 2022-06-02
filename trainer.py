@@ -35,7 +35,6 @@ def make_eval_env(seed):
         env = ThorEnv(mode="eval", seed = seed)
         env.seed(seed)
         return Monitor(env)
-
     return _init
 
 
@@ -62,5 +61,5 @@ if __name__=='__main__':
                 learning_rate=1e-4, tensorboard_log="./logs/tensorboard_log/", ent_coef=0.01, policy_kwargs=policy_kwargs)
     
 
-    model.learn(total_timesteps=700000, callback = eval_callback)
+    model.learn(total_timesteps=1000000, callback = eval_callback)
     model.save("FinalModel")
