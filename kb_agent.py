@@ -128,7 +128,7 @@ class KBController():
         transformat = np.hstack((rotmax, transmat))
         transformat = np.vstack((transformat, [0, 0, 0, 1]))
 
-        # t = '{:06d}'.format(self.time)
+        t = '{:06d}'.format(self.time)
         # np.savetxt(f"{self.args.save_path}/{t}_pose.txt", transformat, fmt="%.6f")
 
         color_to_id = event.color_to_object_id
@@ -151,15 +151,15 @@ class KBController():
         #     im = PilImage.fromarray(id_frame)
         #     im.save(f"{self.args.save_path}/{t}_segmentation.png")
 
-        # if (color_to_id is not None):
-        #     list_of_dicsts = []
-        #     for key, value in color_to_id.items():
-        #         list_of_dicsts.append({"color": key, "id": value})
+        if (color_to_id is not None):
+            list_of_dicsts = []
+            for key, value in color_to_id.items():
+                list_of_dicsts.append({"color": key, "id": value})
 
-        #     with open('colors_ids.csv', 'w') as csvfile:
-        #         writer = csv.DictWriter(csvfile, fieldnames=["color", "id"])
-        #         writer.writeheader()
-        #         writer.writerows(list_of_dicsts) 
+            with open('colors_ids.csv', 'w') as csvfile:
+                writer = csv.DictWriter(csvfile, fieldnames=["color", "id"])
+                writer.writeheader()
+                writer.writerows(list_of_dicsts) 
 
         # data = [t, 1000 * self.time]
         # self.writer.writerow(data)

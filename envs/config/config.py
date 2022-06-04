@@ -8,7 +8,8 @@ def config_parser():
     parser.add_argument("--observations", type=str, default="rgba", help="rgb, rgbd, rgba")
     parser.add_argument("--x_display", type=float, default=0.0)
     parser.add_argument("--headless", type=bool, default=False)
-    parser.add_argument("--local_exe", type=str, default="None", help="path to local executable file")
+    # parser.add_argument("--local_exe", type=str, default="None", help="path to local executable file")
+    parser.add_argument("--local_exe", type=str, default="/home/asl/plr/ai2thor/unity/builds/test1.x86_64")
     parser.add_argument("--obs_size", type=int, default=80, help="observation frame size")
     parser.add_argument("--rot_size_x", type=int, default=15)
     parser.add_argument("--rot_size_y", type=int, default=30)
@@ -16,8 +17,8 @@ def config_parser():
     parser.add_argument("--num_steps", type=int, default=256, help="when each episode ends")
     parser.add_argument("--eval_scenes", nargs="+", default=["FloorPlan1", "FloorPlan2", "FloorPlan3", "FloorPlan4", "FloorPlan5", "FloorPlan1", "FloorPlan2", "FloorPlan3"])
     parser.add_argument("--eval_episodes", nargs="+", default=[12345, 31452, 52314, 41235, 25431, 72583, 67213, 93275])
-    parser.add_argument("--reward_type", type=str, default="map_int_count")
-    parser.add_argument('--debug_scene', type=str, default='FloorPlan1')
+    parser.add_argument("--reward_type", type=str, default="interaction_count")
+    parser.add_argument('--debug_scene', type=str, default='FloorPlan327')
     parser.add_argument('--debug_episode', type=int, default=0)
 
     # training options

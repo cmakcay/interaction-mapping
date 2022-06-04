@@ -13,7 +13,8 @@ from ai2thor.platform import CloudRendering
 
 class ThorEnv(gym.Env):
     """Custom Environment that follows gym interface"""
-    def __init__(self, mode, seed, nh):
+    def __init__(self, mode, seed):
+    # def __init__(self, mode, seed, nh):
         super(ThorEnv, self).__init__()
 
         # get args
@@ -24,7 +25,7 @@ class ThorEnv(gym.Env):
         self.observations = self.args.observations
         platform = CloudRendering if self.args.headless == True else None
         x_display = self.args.x_display
-        local_exe = None if self.args.local_exe=='None' else self.config.local_exe
+        local_exe = None if self.args.local_exe=='None' else self.args.local_exe
         obs_size = self.args.obs_size #switch to a smaller size than 300x300?
         
         if self.observations == "rgb":
@@ -65,21 +66,21 @@ class ThorEnv(gym.Env):
         if self.reward_type == "interaction_count" or self.reward_type == "map_int_count":
             self.interaction_count = collections.defaultdict(int)
 
-        self.nh = nh
+        # self.nh = nh
         self.last_rew_timestamp = 0
 
         # convert rgb to id
-        self.temp_index = self.nh.env_index + 1
-        self.csv_path = f'/home/asl/plr/kb_agent_dataset/groundtruth_labels_{self.temp_index}.csv'
+        # self.temp_index = self.nh.env_index + 1
+        # self.csv_path = f'/home/asl/plr/kb_agent_dataset/groundtruth_labels_{self.temp_index}.csv'
         self.rgbs_to_id = {}
 
-        with open(self.csv_path) as csvfile:
-            reader = csv.DictReader(csvfile)
-            # header = next(reader)
-            for row in reader:
-                rgb_curr  = (int(row["R"]), int(row["G"]), int(row["B"]))
-                id_curr = int(row["InstanceID"])
-                self.rgbs_to_id[rgb_curr] = id_curr
+        # with open(self.csv_path) as csvfile:
+        #     reader = csv.DictReader(csvfile)
+        #     # header = next(reader)
+        #     for row in reader:
+        #         rgb_curr  = (int(row["R"]), int(row["G"]), int(row["B"]))
+        #         id_curr = int(row["InstanceID"])
+        #         self.rgbs_to_id[rgb_curr] = id_curr
 
         # only navigation + take and put
         self.actions = ["forward", "up", "down", "right", "left", "take", "put"]
