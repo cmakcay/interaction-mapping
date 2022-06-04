@@ -28,7 +28,7 @@ import rospy
 #         return Monitor(env)
 #     return _init
 
-saved_model_path = "/home/asl/plr/backups/nav_0.4/best_model.zip"
+saved_model_path = "/home/asl/plr/backups/int_nav_0.2/best_model.zip"
 parser = config_parser()
 args = parser.parse_args()
 

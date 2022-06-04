@@ -23,7 +23,7 @@ class ThorMapEvaluateEnv(gym.Env):
         self.observations = self.args.observations
         platform = CloudRendering if self.args.headless == True else None
         x_display = self.args.x_display
-        local_exe = None if self.args.local_exe=='None' else self.config.local_exe
+        local_exe = None if self.args.local_exe=='None' else self.args.local_exe
         obs_size = self.args.obs_size 
         
         if self.observations == "rgb":
@@ -38,8 +38,8 @@ class ThorMapEvaluateEnv(gym.Env):
             raise NotImplementedError
 
         # set scene and episode
-        self.eval_scene = 'FloorPlan3'
-        self.eval_episode = 158970
+        self.eval_scene = 'FloorPlan327'
+        self.eval_episode = 0
         # self.eval_episodes, self.eval_scenes = [], []
         # with open("/home/asl/plr/interaction-mapping/envs/config/evaluate_list.csv", mode='r') as inp:
         #     reader = csv.reader(inp)
@@ -94,7 +94,7 @@ class ThorMapEvaluateEnv(gym.Env):
 
         # define action space and observation space
         # ai2thor images are already uint8 (0-255)
-        self.action_space = spaces.Discrete(len(self.actions)-2)
+        self.action_space = spaces.Discrete(len(self.actions))
         self.observation_space = spaces.Box(low=0, high=255, shape=(num_channels, obs_size, obs_size), dtype=np.uint8)
         
         # take/put grid
@@ -401,10 +401,10 @@ class ThorMapEvaluateEnv(gym.Env):
         self.controller.step(dict(action='Initialize', **self.init_params))
        
         # randomize object locations
-        self.controller.step(dict(action='InitialRandomSpawn',
-                randomSeed=self.episode,
-                forceVisible=True,
-                numPlacementAttempts=5))
+        # self.controller.step(dict(action='InitialRandomSpawn',
+        #         randomSeed=self.episode,
+        #         forceVisible=True,
+        #         numPlacementAttempts=5))
  
         # borrowed from interaction-exploration
         self.controller.step(dict(action='GetReachablePositions'))
