@@ -38,8 +38,8 @@ class ThorMapEvaluateEnv(gym.Env):
             raise NotImplementedError
 
         # set scene and episode
-        self.eval_scene = 'FloorPlan2'
-        self.eval_episode = 321429
+        self.eval_scene = 'FloorPlan3'
+        self.eval_episode = 158970
         # self.eval_episodes, self.eval_scenes = [], []
         # with open("/home/asl/plr/interaction-mapping/envs/config/evaluate_list.csv", mode='r') as inp:
         #     reader = csv.reader(inp)
@@ -94,7 +94,7 @@ class ThorMapEvaluateEnv(gym.Env):
 
         # define action space and observation space
         # ai2thor images are already uint8 (0-255)
-        self.action_space = spaces.Discrete(len(self.actions))
+        self.action_space = spaces.Discrete(len(self.actions)-2)
         self.observation_space = spaces.Box(low=0, high=255, shape=(num_channels, obs_size, obs_size), dtype=np.uint8)
         
         # take/put grid

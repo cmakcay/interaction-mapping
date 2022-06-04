@@ -136,12 +136,12 @@ class ThorEnv(gym.Env):
                     int_reward += 1.0
                     self.interaction_count[key] += 1
  
-            x, y, z, rot, hor = self.agent_pose(self.state)
-            # pose_key = (x, y, z , rot, hor)
-            pose_key = (x, y, z)
-            if pose_key not in self.camera_poses:
-                nav_reward+=0.2
-                self.camera_poses[pose_key]+=1
+            # x, y, z, rot, hor = self.agent_pose(self.state)
+            # # pose_key = (x, y, z , rot, hor)
+            # pose_key = (x, y, z)
+            # if pose_key not in self.camera_poses:
+            #     nav_reward+=0
+            #     self.camera_poses[pose_key]+=1
             reward = int_reward+nav_reward
             return reward        
         else:
