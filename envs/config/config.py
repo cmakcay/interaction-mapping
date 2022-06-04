@@ -9,7 +9,7 @@ def config_parser():
     parser.add_argument("--x_display", type=float, default=0.0)
     parser.add_argument("--headless", type=bool, default=False)
     # parser.add_argument("--local_exe", type=str, default="None", help="path to local executable file")
-    parser.add_argument("--local_exe", type=str, default="/home/asl/plr/ai2thor/unity/builds/test1.x86_64", help="path to local executable file")
+    parser.add_argument("--local_exe", type=str, default="/home/asl/plr/ai2thor/unity/builds/test2.x86_64", help="path to local executable file")
     parser.add_argument("--obs_size", type=int, default=80, help="observation frame size")
     parser.add_argument("--rot_size_x", type=int, default=15)
     parser.add_argument("--rot_size_y", type=int, default=30)

@@ -94,7 +94,7 @@ class ThorMapEvaluateEnv(gym.Env):
 
         # define action space and observation space
         # ai2thor images are already uint8 (0-255)
-        self.action_space = spaces.Discrete(len(self.actions))
+        self.action_space = spaces.Discrete(len(self.actions)-2)
         self.observation_space = spaces.Box(low=0, high=255, shape=(num_channels, obs_size, obs_size), dtype=np.uint8)
         
         # take/put grid
