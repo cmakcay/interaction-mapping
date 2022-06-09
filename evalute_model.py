@@ -8,7 +8,7 @@ from stable_baselines3.common.vec_env import DummyVecEnv
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.utils import set_random_seed
 
-set_random_seed(seed=7)
+set_random_seed(seed=7) #51184165
 
 # ROS imports
 import rospy
@@ -28,7 +28,7 @@ import rospy
 #         return Monitor(env)
 #     return _init
 
-saved_model_path = "/home/asl/plr/backups/nav_0.4/best_model.zip"
+saved_model_path = "/home/asl/plr/backups/int_nav_0.2/best_model.zip"
 parser = config_parser()
 args = parser.parse_args()
 
@@ -49,4 +49,4 @@ elif args.eval_mode == 'mapper':
 # saved_model = PPO.load(saved_model_path, custom_objects=custom_objects, env=env)
 
 saved_model = PPO.load(saved_model_path, env=env)
-evaluate_policy(saved_model, saved_model.get_env(), n_eval_episodes=1, deterministic=False)
+evaluate_policy(saved_model, saved_model.get_env(), n_eval_episodes=50, deterministic=False)

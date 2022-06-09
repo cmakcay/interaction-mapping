@@ -29,14 +29,16 @@ import matplotlib.pyplot as plt
 # plt.title("With Interaction", fontsize=20)
 # plt.show()
 
-csv_path_1 = "/home/asl/plr/interaction-mapping/object_logs/bread_104_floor5.csv"
-csv_path_2 = "/home/asl/plr/interaction-mapping/object_logs/bread_104_floor5_nav.csv"
+csv_path_1 = "/home/asl/plr/backups/int_nav_0.2/fraction_logs/position_log.csv"
+csv_path_2 = "/home/asl/plr/backups/nav_0.4/fraction_logs/position_log.csv"
+csv_path_3 = "/home/asl/plr/backups/int/fraction_logs/position_log.csv"
 
 episode_length = 1024
-num_episodes = 1
+num_episodes = 50
 
 fractions_1 = np.zeros((num_episodes, episode_length))
 fractions_2 = np.zeros((num_episodes, episode_length))
+fractions_3 = np.zeros((num_episodes, 1000))
 
 data_1 = []
 with open(csv_path_1, mode='r') as logs:
@@ -50,12 +52,22 @@ with open(csv_path_2, mode='r') as logs:
     for rows in reader:
         data_2.append(rows[2])
 
-for i in range(num_episodes):
-    fractions_1[i,:] = data_1[i*1024:(i+1)*1024]
+data_3 = []
+with open(csv_path_3, mode='r') as logs:
+    reader = csv.reader(logs)
+    for rows in reader:
+        data_3.append(rows[2])
 
 
 for i in range(num_episodes):
-    fractions_2[i,:] = data_2[i*1024:(i+1)*1024]
+    fractions_1[i,:] = data_1[i*episode_length:(i+1)*episode_length]
+
+
+for i in range(num_episodes):
+    fractions_2[i,:] = data_2[i*episode_length:(i+1)*episode_length]
+
+for i in range(num_episodes):
+    fractions_3[i,:] = data_3[i*1000:(i+1)*1000]
 
 fig, ax = plt.subplots()
 
@@ -68,10 +80,14 @@ ax.plot(fractions_1, linewidth=5)
 
 fractions_2 = fractions_2.mean(axis=0)
 ax.plot(fractions_2, linewidth=5)
-# ax.legend(["with interaction", "without interaction"], loc='lower right', fontsize=30)
-# plt.xlabel("Time step", fontsize=30, fontweight='bold')
-# plt.ylabel("Fraction of interacted objects", fontsize=30, fontweight='bold')
-# plt.title("Object Coverage", fontsize=30, fontweight='bold')
-# plt.show()
 
+fractions_3 = fractions_3.mean(axis=0)
+ax.plot(fractions_3, linewidth=5)
+
+ax.legend([r'$\alpha$=1, $\beta$=0.2', r'$\alpha$=0, $\beta$=0.2', r'$\alpha$=1, $\beta$=0'], loc='lower right', fontsize=30)
+plt.xlabel("Time step", fontsize=30, fontweight='bold')
+plt.ylabel("Fraction of visited positions", fontsize=30, fontweight='bold')
+plt.title("Position Coverage", fontsize=30, fontweight='bold')
 plt.show()
+
+# plt.show()

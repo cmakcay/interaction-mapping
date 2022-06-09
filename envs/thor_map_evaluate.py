@@ -9,6 +9,8 @@ from scipy.spatial.transform import Rotation as R
 from ai2thor.controller import Controller
 from ai2thor.platform import CloudRendering
 import csv
+from torchvision import transforms
+import torch
 
 class ThorMapEvaluateEnv(gym.Env):
     """Custom Environment that follows gym interface"""
@@ -38,8 +40,8 @@ class ThorMapEvaluateEnv(gym.Env):
             raise NotImplementedError
 
         # set scene and episode
-        self.eval_scene = 'FloorPlan327'
-        self.eval_episode = 0
+        self.eval_scene = 'FloorPlan4'
+        self.eval_episode = 128984
         # self.eval_episodes, self.eval_scenes = [], []
         # with open("/home/asl/plr/interaction-mapping/envs/config/evaluate_list.csv", mode='r') as inp:
         #     reader = csv.reader(inp)
@@ -94,7 +96,7 @@ class ThorMapEvaluateEnv(gym.Env):
 
         # define action space and observation space
         # ai2thor images are already uint8 (0-255)
-        self.action_space = spaces.Discrete(len(self.actions)-2)
+        self.action_space = spaces.Discrete(len(self.actions))
         self.observation_space = spaces.Box(low=0, high=255, shape=(num_channels, obs_size, obs_size), dtype=np.uint8)
         
         # take/put grid
@@ -263,7 +265,8 @@ class ThorMapEvaluateEnv(gym.Env):
 
             curr_objects = state.metadata['objects']
             num_obj_actions = 2 # [take, put]
-            affordance_mask = np.zeros((num_obj_actions, self.args.obs_size, self.args.obs_size), dtype=np.uint8)
+            # affordance_mask = np.zeros((num_obj_actions, self.args.obs_size, self.args.obs_size), dtype=np.uint8)
+            affordance_mask = np.zeros((num_obj_actions, self.frame_sz, self.frame_sz), dtype=np.uint8)
             seg_frame = state.instance_segmentation_frame
 
             color_to_id = state.color_to_object_id
@@ -288,6 +291,9 @@ class ThorMapEvaluateEnv(gym.Env):
             img = np.array(state.frame, dtype=np.uint8)                                                         
             img_channel_first = np.moveaxis(img, -1, 0)
             obs = np.concatenate((img_channel_first, affordance_mask), axis=0)
+            obs = torch.from_numpy(obs)
+            transform_image = transforms.Resize([80, 80])
+            obs = transform_image(obs)
         else:
             raise NotImplementedError
 
