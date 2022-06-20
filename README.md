@@ -45,14 +45,14 @@ python trainer.py
 ```
 
 ## Bridge to Mapping Framework
-1. Follow the instructions in the mapper [repo](https://github.com/ikaftan/panoptic_mapping) to build and source it. Keep this terminal open for further use.
+1. Follow the instructions in the mapper [repo](https://github.com/ikaftan/panoptic_mapping) to build and source it.
 
 2. Download the CSV files containing the ground truth labels from [here](https://drive.google.com/drive/folders/1Uf3HPTYpzWdVD-dzeUutLp2a-l8MU7ob?usp=sharing) which are used by the mapper.
  
 3. Test the bridge with a keyboard agent that simultaneously maps the environment by going through the following steps:
 - Set the *csv_path* parameter in envs/config/config.py to the path of *groundtruth_labels_debug.csv* file.
 - Change line 19 of *thor.yaml* file located in src/panoptic_mapping/panoptic_mapping_ros/config/mapper to the path of *groundtruth_labels_debug.csv* file.
-- Open the mapper terminal and launch it using *thor_kb_agent.launch* file:
+- Open the mapper terminal and launch the mapper:
 ```
 roslaunch panoptic_mapping_ros thor_kb_agent.launch
 ```
