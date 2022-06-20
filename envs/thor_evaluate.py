@@ -141,7 +141,7 @@ class ThorEvaluateEnv(gym.Env):
                 self.interaction_count[key] += 1
         object_ratio = len(self.interaction_count) / self.pickupable_objs
         print("ratio of picked up objects: ", object_ratio)
-
+        print("# of objects in the scene:", self.pickupable_objs)
         x, y, z, rot, hor = self.agent_pose(self.state)
 
         pose_key = (x, z)
@@ -149,7 +149,7 @@ class ThorEvaluateEnv(gym.Env):
             self.camera_poses[pose_key]+=1
         pose_ratio = len(self.camera_poses) / len(self.reachable_positions)
         print("ratio of visited positions: ", pose_ratio)
-        
+        print("# of positions in the scene:", len(self.reachable_positions))
         self.int_fraction_logger.writerow([self.scene, self.episode, object_ratio])
         self.position_fraction_logger.writerow([self.scene, self.episode, pose_ratio])
 

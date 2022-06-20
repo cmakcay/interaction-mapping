@@ -8,7 +8,7 @@ from stable_baselines3.common.vec_env import DummyVecEnv
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.utils import set_random_seed
 
-set_random_seed(seed=7) #51184165
+set_random_seed(seed=7) #51184165 or 6934152
 
 # ROS imports
 import rospy
@@ -36,17 +36,11 @@ if args.eval_mode == 'thor':
     env = ThorEvaluateEnv(seed=0)
 elif args.eval_mode == 'mapper':
     rospy.init_node("mapper")
-
+    
     # create node handle
     mapper = Bridge(env_index=0)
     env = ThorMapEvaluateEnv(seed=0, nh=mapper)
 
-# # Might not need this dict in all cases
-# custom_objects = {
-#     "lr_schedule": lambda x: .003,
-#     "clip_range": lambda x: .02
-# }
-# saved_model = PPO.load(saved_model_path, custom_objects=custom_objects, env=env)
 
 saved_model = PPO.load(saved_model_path, env=env)
 evaluate_policy(saved_model, saved_model.get_env(), n_eval_episodes=50, deterministic=False)

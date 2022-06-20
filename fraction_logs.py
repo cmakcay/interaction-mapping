@@ -29,9 +29,9 @@ import matplotlib.pyplot as plt
 # plt.title("With Interaction", fontsize=20)
 # plt.show()
 
-csv_path_1 = "/home/asl/plr/backups/int_nav_0.2/fraction_logs/position_log.csv"
-csv_path_2 = "/home/asl/plr/backups/nav_0.4/fraction_logs/position_log.csv"
-csv_path_3 = "/home/asl/plr/backups/int/fraction_logs/position_log.csv"
+csv_path_1 = "/home/asl/plr/backups/int_nav_0.2/fraction_logs/interaction_log.csv"
+csv_path_2 = "/home/asl/plr/backups/nav_0.4/fraction_logs/interaction_log.csv"
+csv_path_3 = "/home/asl/plr/backups/int/fraction_logs/interaction_log.csv"
 
 episode_length = 1024
 num_episodes = 50
@@ -84,10 +84,10 @@ ax.plot(fractions_2, linewidth=5)
 fractions_3 = fractions_3.mean(axis=0)
 ax.plot(fractions_3, linewidth=5)
 
-ax.legend([r'$\alpha$=1, $\beta$=0.2', r'$\alpha$=0, $\beta$=0.2', r'$\alpha$=1, $\beta$=0'], loc='lower right', fontsize=30)
-plt.xlabel("Time step", fontsize=30, fontweight='bold')
-plt.ylabel("Fraction of visited positions", fontsize=30, fontweight='bold')
-plt.title("Position Coverage", fontsize=30, fontweight='bold')
+ax.legend([r'$\alpha$=1, $\beta$=0.2 (int+nav)', r'$\alpha$=0, $\beta$=0.2 (nav)', r'$\alpha$=1, $\beta$=0 (int)'], loc='upper left', fontsize=30)
+plt.xlabel("Time step", fontsize=40, fontweight='bold')
+plt.ylabel("Fraction of interacted objects", fontsize=40, fontweight='bold')
+plt.title("Object Coverage", fontsize=40, fontweight='bold')
 plt.show()
 
 # plt.show()
