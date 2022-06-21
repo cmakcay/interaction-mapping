@@ -53,7 +53,7 @@ The tensorboard logs are saved under a folder called *logs* in the same director
  
 3. Test the bridge with a keyboard agent that simultaneously maps the environment by going through the following steps:
 - Set the *csv_path* parameter in envs/config/config.py to the path of *groundtruth_labels_debug.csv* file.
-- Change line 19 of *thor.yaml* file located in src/panoptic_mapping/panoptic_mapping_ros/config/mapper to the path of *groundtruth_labels_debug.csv* file.
+- Change the path in line 19 of *thor.yaml* file located in src/panoptic_mapping/panoptic_mapping_ros/config/mapper to the path of *groundtruth_labels_debug.csv* file.
 - Open the mapper terminal and launch the mapper:
 ```
 roslaunch panoptic_mapping_ros thor_kb_agent.launch
@@ -76,6 +76,7 @@ There are three evaluation metrics: object coverage, position coverage, and the 
 - Set the number of evaluation steps using the *num_steps* parameter. The default value is 1024 for these metrics.
 - Change line 31 of *evaluate_model.py* file to the path of *best_model.zip* of the desired model.
 - Create a folder called *fraction_logs* under the same directory. The metrics will be saved here with names interaction_log.csv and position_log.csv.
+- Set n_eval_episodes to 50 in line 30 of *evaluate_model.py* for these metrics.
 - Evaluate the trained model:
 ```
 python evaluate_model.py
@@ -89,4 +90,19 @@ python fraction_logs.py
 - There are 50 randomly selected evaluation episodes listed in envs/config/evaluation_list.csv. We use one episode at a time to obtain the number of observed voxels of an object present in that scene. The ground truth labels of these episodes are located under *eval_labels*.
 - Specify the selected scene in line 43 and the selected episode in line 44 of envs/thor_map_evaluate.py and change line 78 to the path of groundtruth_labels_{eval_scene}_{eval_episode}.csv in the same script.
 - Select the action space using the *action_type* parameter depending on the the trained model.
-- Set the number of evaluation steps using the *num_steps* parameter.
+- Set the number of evaluation steps using the *num_steps* parameter. The default value is 400 for this metric.
+- Change line 31 of *evaluate_model.py* file to the path of *best_model.zip* of the desired model.
+- Set n_eval_episodes to 1 in line 30 of *evaluate_model.py* for this metric since we evaluate on one episode at a time.
+- Change the path in line 19 of *thor_0.yaml* file located in src/panoptic_mapping/panoptic_mapping_ros/config/eval to the path of *groundtruth_labels_{eval_sccene}_{eval_episode}.csv* file, the id in line 12 to the id of the selected object which can be found in the csv file, and the episode length in line 15 to the number of evaluation steps mentioned before.
+- Launch the mapper:
+```
+roslaunch panoptic_mapping_ros thor_eval.launch
+```
+- Evaluate the trained model:
+```
+python evaluate_model.py
+```
+- You can use rqt_multiplot to plot the number of observed voxels of the selected object simultaneously:
+```
+rosrun rqt_multiplot rqt_multiplot
+```
