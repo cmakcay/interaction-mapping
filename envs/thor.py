@@ -397,7 +397,7 @@ class ThorEnv(gym.Env):
                 forceVisible=True,
                 numPlacementAttempts=5))
  
-        # borrowed from interaction-exploration
+        # borrowed from Facebook's interaction-exploration
         self.controller.step(dict(action='GetReachablePositions'))
         reachable_positions = [(pos['x'], pos['y'], pos['z']) for pos in self.state.metadata['actionReturn']]
         

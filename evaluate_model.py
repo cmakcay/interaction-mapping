@@ -13,21 +13,6 @@ set_random_seed(seed=7) #51184165 or 6934152
 # ROS imports
 import rospy
 
-# def make_eval_env(seed):
-#     """
-#     Utility function for multiprocessed env.
-
-#     :param env_id: (str) the environment ID
-#     :param num_env: (int) the number of environments you wish to have in subprocesses
-#     :param seed: (int) the inital seed for RNG
-#     :param rank: (int) index of the subprocess
-#     """
-#     def _init():
-#         env = ThorEvaluateEnv(seed=seed)
-#         env.seed(seed)
-#         return Monitor(env)
-#     return _init
-
 saved_model_path = "/home/asl/plr/backups/int_nav_0.2/best_model.zip"
 parser = config_parser()
 args = parser.parse_args()
@@ -40,7 +25,6 @@ elif args.eval_mode == 'mapper':
     # create node handle
     mapper = Bridge(env_index=0)
     env = ThorMapEvaluateEnv(seed=0, nh=mapper)
-
 
 saved_model = PPO.load(saved_model_path, env=env)
 evaluate_policy(saved_model, saved_model.get_env(), n_eval_episodes=50, deterministic=False)
