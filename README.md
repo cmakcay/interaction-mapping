@@ -86,7 +86,7 @@ python fraction_logs.py
 ```
 
 3. We use ThorMapEvaluateEnv in envs/thor_map_evaluate.py for *mapper* option:
-- There are 50 randomly selected evaluation episodes listed in envs/config/evaluation_list.csv. We use one episode at a time to obtain the number of observed voxels of an object present in that scene. THe ground truth labels of these episodes are located under *eval_labels*.
+- There are 50 randomly selected evaluation episodes listed in envs/config/evaluation_list.csv. We use one episode at a time to obtain the number of observed voxels of an object present in that scene. The ground truth labels of these episodes are located under *eval_labels*.
 - Specify the selected scene in line 43 and the selected episode in line 44 of envs/thor_map_evaluate.py and change line 78 to the path of groundtruth_labels_{eval_scene}_{eval_episode}.csv in the same script.
 - Select the action space using the *action_type* parameter depending on the the trained model.
 - Set the number of evaluation steps using the *num_steps* parameter.
