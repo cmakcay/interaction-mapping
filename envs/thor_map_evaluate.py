@@ -42,15 +42,6 @@ class ThorMapEvaluateEnv(gym.Env):
         # set scene and episode
         self.eval_scene = 'FloorPlan4'
         self.eval_episode = 128984
-        # self.eval_episodes, self.eval_scenes = [], []
-        # with open("/home/asl/plr/interaction-mapping/envs/config/evaluate_list.csv", mode='r') as inp:
-        #     reader = csv.reader(inp)
-        #     next(reader)
-        #     for rows in reader:
-        #         self.eval_scenes.append(rows[0])
-        #         self.eval_episodes.append(int(rows[1]))
-        # self.eval_episode_iter = iter(self.eval_episodes)
-        # self.eval_scene_iter = iter(self.eval_scenes)
         
         # set global args for the class
         self.seed = seed
@@ -69,6 +60,7 @@ class ThorMapEvaluateEnv(gym.Env):
         self.reward_type = self.args.reward_type
         
         # only navigation + take and put
+        self.action_type = self.args.action_type
         self.actions = ["forward", "up", "down", "right", "left", "take", "put"]
         self.action_functions = {
             'forward':self.move,
@@ -96,8 +88,11 @@ class ThorMapEvaluateEnv(gym.Env):
 
         # define action space and observation space
         # ai2thor images are already uint8 (0-255)
-        self.action_space = spaces.Discrete(len(self.actions)-2)
         self.observation_space = spaces.Box(low=0, high=255, shape=(num_channels, obs_size, obs_size), dtype=np.uint8)
+        if self.action_type == 'with_int':
+            self.action_space = spaces.Discrete(len(self.actions))
+        elif self.action_type == 'without_int':
+            self.action_space = spaces.Discrete(len(self.actions)-2)
         
         # take/put grid
         self.N = 5
@@ -291,9 +286,6 @@ class ThorMapEvaluateEnv(gym.Env):
             img = np.array(state.frame, dtype=np.uint8)                                                         
             img_channel_first = np.moveaxis(img, -1, 0)
             obs = np.concatenate((img_channel_first, affordance_mask), axis=0)
-            # obs = torch.from_numpy(obs)
-            # transform_image = transforms.Resize([80, 80])
-            # obs = transform_image(obs)
         else:
             raise NotImplementedError
 
@@ -397,11 +389,6 @@ class ThorMapEvaluateEnv(gym.Env):
         self.t=0
         self.scene = self.eval_scene
         self.episode = self.eval_episode
-        # self.scene, self.episode = next(self.eval_scene_iter,None), next(self.eval_episode_iter,None)
-        # if self.scene is None:
-        #     self.eval_episode_iter = iter(self.eval_episodes)
-        #     self.eval_scene_iter = iter(self.eval_scenes)
-        #     self.scene, self.episode = next(self.eval_scene_iter), next(self.eval_episode_iter)
      
         self.controller.reset(scene=self.scene)
         self.controller.step(dict(action='Initialize', **self.init_params))

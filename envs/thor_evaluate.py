@@ -37,8 +37,6 @@ class ThorEvaluateEnv(gym.Env):
             raise NotImplementedError
 
         # set scene and episode
-        # self.eval_scene = 'FloorPlan1'
-        # self.eval_episode = 92986
         self.eval_episodes, self.eval_scenes = [], []
         with open("/home/asl/plr/interaction-mapping/envs/config/evaluate_list.csv", mode='r') as inp:
             reader = csv.reader(inp)
@@ -66,6 +64,7 @@ class ThorEvaluateEnv(gym.Env):
         self.reward_type = self.args.reward_type
         
         # only navigation + take and put
+        self.action_type = self.args.action_type
         self.actions = ["forward", "up", "down", "right", "left", "take", "put"]
         self.action_functions = {
             'forward':self.move,
@@ -79,8 +78,11 @@ class ThorEvaluateEnv(gym.Env):
 
         # define action space and observation space
         # ai2thor images are already uint8 (0-255)
-        self.action_space = spaces.Discrete(len(self.actions))
         self.observation_space = spaces.Box(low=0, high=255, shape=(num_channels, obs_size, obs_size), dtype=np.uint8)
+        if self.action_type == 'with_int':
+            self.action_space = spaces.Discrete(len(self.actions))
+        elif self.action_type == 'without_int':
+            self.action_space = spaces.Discrete(len(self.actions)-2)
         
         # take/put grid
         self.N = 5
@@ -105,17 +107,6 @@ class ThorEvaluateEnv(gym.Env):
         reward = self.get_reward()
         done = self.get_done()
         self.step_info.update({'reward':reward, 'done':done})
-
-        # color_to_id = self.state.color_to_object_id
-        # if (color_to_id is not None):
-        #     list_of_dicsts = []
-        #     for key, value in color_to_id.items():
-        #         list_of_dicsts.append({"color": key, "id": value})
-
-        #     with open(f'colors_ids_{self.scene}_{self.episode}.csv', 'w') as csvfile:
-        #         writer = csv.DictWriter(csvfile, fieldnames=["color", "id"])
-        #         writer.writeheader()
-        #         writer.writerows(list_of_dicsts) 
 
         return observation, reward, done, self.step_info
 
@@ -376,8 +367,6 @@ class ThorEvaluateEnv(gym.Env):
     # initialize the environment
     def init_env(self):
         self.t=0
-        # self.scene = self.eval_scene
-        # self.episode = self.eval_episode
         self.scene, self.episode = next(self.eval_scene_iter,None), next(self.eval_episode_iter,None)
         if self.scene is None:
             self.eval_episode_iter = iter(self.eval_episodes)

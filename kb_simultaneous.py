@@ -284,8 +284,6 @@ class KBController():
             os.environ['DISPLAY'] = display
 
 
-
-
 if __name__ == '__main__':
     os.environ['LDISPLAY'] = os.environ['DISPLAY']
 

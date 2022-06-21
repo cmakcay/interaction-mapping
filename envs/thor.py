@@ -63,11 +63,12 @@ class ThorEnv(gym.Env):
         # reward specific parameters
         if self.reward_type == "interaction_count":
             self.interaction_count = collections.defaultdict(int)
-        if self.reward_type == "interaction_navigation":    
+        elif self.reward_type == "interaction_navigation":    
             self.interaction_count = collections.defaultdict(int)
             self.camera_poses = collections.defaultdict(int)
         
         # only navigation + take and put
+        self.action_type = self.args.action_type
         self.actions = ["forward", "up", "down", "right", "left", "take", "put"]
         self.action_functions = {
             'forward':self.move,
@@ -81,9 +82,11 @@ class ThorEnv(gym.Env):
 
         # define action space and observation space
         # ai2thor images are already uint8 (0-255)
-        self.action_space = spaces.Discrete(len(self.actions)) # this is with interaction
-        # self.action_space = spaces.Discrete(len(self.actions)-2) # this is without interaction
         self.observation_space = spaces.Box(low=0, high=255, shape=(num_channels, obs_size, obs_size), dtype=np.uint8)
+        if self.action_type == 'with_int':
+            self.action_space = spaces.Discrete(len(self.actions))
+        elif self.action_type == 'without_int':
+            self.action_space = spaces.Discrete(len(self.actions)-2)
         
         # take/put grid
         self.N = 5
@@ -136,12 +139,12 @@ class ThorEnv(gym.Env):
                     int_reward += 1.0
                     self.interaction_count[key] += 1
  
-            # x, y, z, rot, hor = self.agent_pose(self.state)
-            # # pose_key = (x, y, z , rot, hor)
-            # pose_key = (x, y, z)
-            # if pose_key not in self.camera_poses:
-            #     nav_reward+=0
-            #     self.camera_poses[pose_key]+=1
+            x, y, z, rot, hor = self.agent_pose(self.state)
+            # pose_key = (x, y, z , rot, hor)
+            pose_key = (x, y, z)
+            if pose_key not in self.camera_poses:
+                nav_reward+=0.2
+                self.camera_poses[pose_key]+=1
             reward = int_reward+nav_reward
             return reward        
         else:

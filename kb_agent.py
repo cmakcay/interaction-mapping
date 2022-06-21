@@ -7,7 +7,6 @@ import collections
 import torch
 from PIL import Image as PilImage
 from PIL import ImageDraw
-from torchvision.utils import make_grid
 import torch.nn.functional as F
 import torchvision.transforms as transforms
 import csv
@@ -131,7 +130,7 @@ class KBController():
         t = '{:06d}'.format(self.time)
         # np.savetxt(f"{self.args.save_path}/{t}_pose.txt", transformat, fmt="%.6f")
 
-        color_to_id = event.color_to_object_id
+        # color_to_id = event.color_to_object_id
         # if (color_frame is not None):
         #     im = PilImage.fromarray(color_frame)
         #     im.save(f"{self.args.save_path}/{t}_color.png")
@@ -151,21 +150,21 @@ class KBController():
         #     im = PilImage.fromarray(id_frame)
         #     im.save(f"{self.args.save_path}/{t}_segmentation.png")
 
-        if (color_to_id is not None):
-            list_of_dicsts = []
-            for key, value in color_to_id.items():
-                list_of_dicsts.append({"color": key, "id": value})
+        # if (color_to_id is not None):
+        #     list_of_dicsts = []
+        #     for key, value in color_to_id.items():
+        #         list_of_dicsts.append({"color": key, "id": value})
 
-            with open('colors_ids.csv', 'w') as csvfile:
-                writer = csv.DictWriter(csvfile, fieldnames=["color", "id"])
-                writer.writeheader()
-                writer.writerows(list_of_dicsts) 
+        #     with open('colors_ids.csv', 'w') as csvfile:
+        #         writer = csv.DictWriter(csvfile, fieldnames=["color", "id"])
+        #         writer.writeheader()
+        #         writer.writerows(list_of_dicsts) 
 
         # data = [t, 1000 * self.time]
         # self.writer.writerow(data)
 
         frame = torch.from_numpy(np.array(event.frame)).float().permute(2, 0, 1)/255
-        frame = F.interpolate(frame.unsqueeze(0), 400, mode='bilinear', align_corners=True)[0]
+        frame = F.interpolate(frame.unsqueeze(0), 80, mode='bilinear', align_corners=True)[0]
         frame = add_rectangle(frame, self.center_box)
 
         utils.show_wait(frame, T=1, win='frame')
@@ -211,8 +210,6 @@ class KBController():
             
             self.render()
             os.environ['DISPLAY'] = display
-
-
 
 
 if __name__ == '__main__':
