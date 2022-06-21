@@ -1,3 +1,6 @@
+'''
+The code is adapted from Facebook's interaction-exploration https://github.com/facebookresearch/interaction-exploration.git
+'''
 import collections
 import gym
 from gym import spaces
