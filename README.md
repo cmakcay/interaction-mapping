@@ -66,7 +66,7 @@ python kb_simultaneous.py
 You will see that the map is incrementally built in RViz as you navigate in the environment using the keyboard agent.
 
 ## Evaluation
-There are three evaluation metrics: object coverage, position coverage, and the number of observed voxels of individual objects. The parameters that are used in evaluation can be found in envs/config/config.py
+There are three evaluation metrics: object coverage, position coverage, and the number of observed voxels of individual objects. The parameters that are used in evaluation can be found in envs/config/config.py. The trained models can be downloaded from [here](
 
 1. Select the evaluation mode using the *eval_mode* parameter. There are two options: *thor* and *mapper*. The first two metrics are obtained by the simulator and the last metric is obtained from the mapper.
 
@@ -74,9 +74,15 @@ There are three evaluation metrics: object coverage, position coverage, and the 
 - There are 50 randomly selected evaluation episodes listed in envs/config/evaluation_list.csv which are used in obtaning object coverage and position coverage.
 - Select the action space using the *action_type* parameter depending on the the trained model.
 - Set the number of evaluation steps using the *num_steps* parameter. The default value is 400 for these metrics.
-- Change line 31 of *evaluate_model.py* file to the path of *best_model.zip*.
-- Create a folder called *fraction_logs* under the same directory. The metrics will be saved here with names interaction_log. csv and position_log.csv.
+- Change line 31 of *evaluate_model.py* file to the path of *best_model.zip* of the desired model.
+- Create a folder called *fraction_logs* under the same directory. The metrics will be saved here with names interaction_log.csv and position_log.csv.
 - Evaluate the trained model:
 ```
 python evaluate_model.py
 ```
+- The values can then be plotted using a script similar to fraction_logs.py after specifying the paths of interaction_log.csv and position_log.csv in lines 5-6:
+```
+python fraction_logs.py
+```
+
+3. 
