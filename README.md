@@ -76,7 +76,7 @@ There are three evaluation metrics: object coverage, position coverage, and the 
 - Set the number of evaluation steps using the *num_steps* parameter. The default value is 400 for these metrics.
 - Change line 31 of *evaluate_model.py* file to the path of *best_model.zip*.
 - Create a folder called *fraction_logs* under the same directory. The metrics will be saved here with names interaction_log. csv and position_log.csv.
-- Evaluate the model:
+- Evaluate the trained model:
 ```
 python evaluate_model.py
 ```
