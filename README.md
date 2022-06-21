@@ -1,6 +1,6 @@
 # Interactive Exploration for Mapping
 
-This repo contains code to train an agent to navigate in an unknown environment and interact with objects to perform more complete object-level mapping and to evaluate the completeness of the resulting object-level maps which are created using the panoptic mapping framework introduced in [Panoptic Multi-TSDFs](https://github.com/ethz-asl/panoptic_mapping). 
+This repo contains code to train an agent to navigate in an unknown environment and interact with objects to perform more complete object-level mapping and to evaluate the completeness of the resulting object-level maps which are created using the panoptic mapping framework introduced in [Panoptic Multi-TSDFs](https://arxiv.org/abs/2109.10165). The reinforcement learning framework is inspired by [Learning Affordance Landscapes for Interaction Exploration in 3D Environments](https://arxiv.org/pdf/2008.09241.pdf).
 
 ## Installation
 
@@ -27,7 +27,7 @@ python kb_agent.py
 ```
 
 ## Training
-The parameters that are used in training and evaluation can be found in envs/config/config.py. For training:
+We use ThorEnv in envs/thor.py in training. The parameters that are used in training can be found in envs/config/config.py. For training:
 
 1. Select the observation space using the *observations* parameter. There are four options: *rgb* (color images), *rgbd* (color and depth images), *rgba* (color images + ground truth affordances), and *rgbda* (color and depth images + ground truth affordances). The default value is *rgba*.
 
@@ -43,6 +43,8 @@ After setting up the parameters, start training:
 ```
 python trainer.py
 ```
+
+The tensorboard logs are saved under a folder called *logs* in the same directory. The best model (best_model.zip) can be found here when training ends.
 
 ## Bridge to Mapping Framework
 1. Follow the instructions in the mapper [repo](https://github.com/ikaftan/panoptic_mapping) to build and source it.
@@ -64,3 +66,17 @@ python kb_simultaneous.py
 You will see that the map is incrementally built in RViz as you navigate in the environment using the keyboard agent.
 
 ## Evaluation
+There are three evaluation metrics: object coverage, position coverage, and the number of observed voxels of individual objects. The parameters that are used in evaluation can be found in envs/config/config.py
+
+1. Select the evaluation mode using the *eval_mode* parameter. There are two options: *thor* and *mapper*. The first two metrics are obtained by the simulator and the last metric is obtained from the mapper.
+
+2. We use ThorEvaluateEnv in envs/thor.py for *thor* option:
+- There are 50 randomly selected evaluation episodes listed in envs/config/evaluation_list.csv which are used in obtaning object coverage and position coverage.
+- Select the action space using the *action_type* parameter depending on the the trained model.
+- Set the number of evaluation steps using the *num_steps* parameter. The default value is 400 for these metrics.
+- Change line 31 of *evaluate_model.py* file to the path of *best_model.zip*.
+- Create a folder called *fraction_logs* under the same directory. The metrics will be saved here with names interaction_log. csv and position_log.csv.
+- Evaluate the model:
+```
+python evaluate_model.py
+```
