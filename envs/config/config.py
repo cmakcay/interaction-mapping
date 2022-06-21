@@ -21,7 +21,7 @@ def config_parser():
     parser.add_argument("--reward_type", type=str, default="interaction_navigation")
     parser.add_argument('--debug_scene', type=str, default='FloorPlan1')
     parser.add_argument('--debug_episode', type=int, default=0)
-    parser.add_argument('--eval_mode', type=str, default='thor', help='thor or mapper')
+    parser.add_argument('--eval_mode', type=str, default='mapper', help='thor or mapper')
 
     # training options
     parser.add_argument("--num_processes", type=int, default=4)

@@ -27,4 +27,4 @@ elif args.eval_mode == 'mapper':
     env = ThorMapEvaluateEnv(seed=0, nh=mapper)
 
 saved_model = PPO.load(saved_model_path, env=env)
-evaluate_policy(saved_model, saved_model.get_env(), n_eval_episodes=50, deterministic=False)
+evaluate_policy(saved_model, saved_model.get_env(), n_eval_episodes=1, deterministic=False)
