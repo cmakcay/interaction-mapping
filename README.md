@@ -31,7 +31,7 @@ The parameters that are used in training and evaluation can be found in envs/con
 
 1. Select the observation space using the *observations* parameter. There are four options: *rgb* (color images), *rgbd* (color and depth images), *rgba* (color images + ground truth affordances), and *rgbda* (color and depth images + ground truth affordances). The default value is *rgba*.
 
-2. Select the action space using the *action_type* parameter. There are two options: *with interaction* and *without interaction*.
+2. Select the action space using the *action_type* parameter. There are two options: *with_int* (the agent can interact with objects) and *without_int* (the agent cannot interact with objects).
 
 3. Set the *headless* parameter to *True* if you want to use headless rendering.
 
