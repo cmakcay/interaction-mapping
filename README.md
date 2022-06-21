@@ -93,7 +93,7 @@ python fraction_logs.py
 - Set the number of evaluation steps using the *num_steps* parameter. The default value is 400 for this metric.
 - Change line 31 of *evaluate_model.py* file to the path of *best_model.zip* of the desired model.
 - Set n_eval_episodes to 1 in line 30 of *evaluate_model.py* for this metric since we evaluate on one episode at a time.
-- Change the path in line 19 of *thor_0.yaml* file in src/panoptic_mapping/panoptic_mapping_ros/config/eval to the path of *groundtruth_labels_{eval_sccene}_{eval_episode}.csv* file, the id in line 12 to the id of the selected object which can be found in the csv file, and the episode length in line 15 to the number of evaluation steps mentioned before.
+- Change the path in line 19 of *thor_0.yaml* file in src/panoptic_mapping/panoptic_mapping_ros/config/eval to the path of *groundtruth_labels_{eval_scene}_{eval_episode}.csv* file, the id in line 12 to the id of the selected object which can be found in the csv file, and the episode length in line 15 to the number of evaluation steps mentioned before.
 - Launch the mapper:
 ```
 roslaunch panoptic_mapping_ros thor_eval.launch
